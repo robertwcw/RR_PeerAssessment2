@@ -10,33 +10,31 @@ output:
 
 ```{r setup, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 Sys.setenv(TZ = "UTC")      # set global TZ for POSIXt class
 
 .Rfliburl <- "https://raw.githubusercontent.com/robertwcw/Rflib/master"
 source(file.path(.Rfliburl,"getRflib.R"),local = TRUE)
 source(getRflib("is.defined.R"),local = TRUE)
-source(getRflib("myplclust.R"),local = TRUE)
 source(getRflib("strCap.R"),local = TRUE)
+# source(getRflib("myplclust.R"),local = TRUE)
 
 library(data.table)
 ```
 
 ```{r data.load}
-# loading data into R work space from cloud based data source
+# loading data downloaded from course website into R workspace 
 
-# set data source url to course site file source
+# set data source url to course website
 fileurl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
-filetmp <- tempfile()
 datadir <- paste(".", "data", sep = "/")
-
-if (!dir.exists(datadir)) 
-    {
-        dir.create(datadir)
-    }
+filetmp <- tempfile()
 
 download.file(fileurl, filetmp)
 
-# construct a name for data-object from data source
+if (!dir.exists(datadir)) {dir.create(datadir)}
+
+# construct a named string from data source for data-object in R workspace
 filels <- strsplit(basename(fileurl), "%2F", fixed = TRUE)[[1]]
 for (i in 1:length(filels)) 
         {
@@ -47,21 +45,9 @@ for (i in 1:length(filels))
                 filesrc <- bzfile(filetmp, open = "r")
                 assign(filenam, data.table(read.csv(filesrc)))
                 close(filesrc)
-                break # break loop as there's only one file in source
+                break # break the loop as only one file found in the source
                 }
         }
-
-# fileout <- paste(datadir, filenam, sep = "/")
-# fileout <- paste(fileout, "bz2", sep = ".")
-# fileout <- bzfile(fileout, open = "wb")
-# write.table(StormData, file = fileout)
-# close(fileout)
-# rm(fileout)
-# 
-# fileout <- paste(datadir, filenam, sep = "/")
-# fileout <- paste(fileout, "bz2", sep = ".")
-# StormData <- fread(fileout)
-# rm(fileout)
 
 unlink(filetmp)
 rm(i,fileurl,filetmp,filesrc,filenam,filels,filein)
