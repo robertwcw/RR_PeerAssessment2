@@ -1,5 +1,5 @@
 ---
-title: "RR_PeerAssessment2"
+title: "Reproducible Research - Peer Assessment2"
 author: "robertwcw"
 date: "9/21/2020"
 output: 
@@ -7,11 +7,18 @@ output:
     fig_caption: yes
     keep_md: yes
 ---
+## SYNOPSIS
 
+Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health problems and economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed in the weather related disaster events. This data analysis attempts to address the concerns which types of events give rise to deleterious social impact aftermath in terms of economic and public health aspects. Based on US National Oceanic and Atmospheric Administration (NOAA) storm database, the relevant metrics used in this analysis are measurements for human injuries/fatalities, properties/crops damages and events types across the US from year 1950 to year 2011.
+
+in essence, we shall measure the injuries/fatalities as a function of events types, and crops/properties damages as function of events types.
+
+
+
+#### Set up R workspace 
 ```{r setup, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
-Sys.setenv(TZ = "UTC")      # set global TZ for POSIXt class
+Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
 .Rfliburl <- "https://raw.githubusercontent.com/robertwcw/Rflib/master"
 source(file.path(.Rfliburl,"getRflib.R"),local = TRUE)
@@ -20,8 +27,9 @@ source(getRflib("strCap.R"),local = TRUE)
 # source(getRflib("myplclust.R"),local = TRUE)
 
 library(data.table)
+library(xts)
 ```
-
+#### Loading storm data into R workspace.
 ```{r data.load}
 # loading data downloaded from course website into R workspace 
 
@@ -34,7 +42,7 @@ download.file(fileurl, filetmp)
 
 if (!dir.exists(datadir)) {dir.create(datadir)}
 
-# construct a named string from data source for data-object in R workspace
+# extract source data file name as name of working data object in workspace 
 filels <- strsplit(basename(fileurl), "%2F", fixed = TRUE)[[1]]
 for (i in 1:length(filels)) 
         {
@@ -45,13 +53,20 @@ for (i in 1:length(filels))
                 filesrc <- bzfile(filetmp, open = "r")
                 assign(filenam, data.table(read.csv(filesrc)))
                 close(filesrc)
-                break # break the loop as only one file found in the source
+                break # break the loop as only one data file found in the source
                 }
-        }
+}
+
+# filenam <- "stormdata"
+# filenam <- paste(datadir, filenam, sep = "/")
+# filenam <- paste(filenam,"csv", "bz2", sep = ".")
+# filesrc <- bzfile(filenam, open = "w")
+# write.csv(StormData, filesrc, row.names = FALSE)
+# close(filesrc)
 
 unlink(filetmp)
 rm(i,fileurl,filetmp,filesrc,filenam,filels,filein)
 ```
 
-
+The emotional trauma of incurring physical injury resulting from events such as natural disaster, sports injury, assault, car accident, or accidental fall — can increase the risk of a person developing symptoms and disorders such as, anxiety, depression, panic attacks, anger/frustration, isolation, lack of motivation, insomnia, substance use or abuse, post-traumatic stress disorder (PTSD), and post-concussive syndrome. In addition, mental and emotional symptoms and disorders can be further complicated and exacerbated when injuries result in a loss of skills and opportunities that include the following: being unable to participate in everyday activities such as work, study and socializing; worries about finances and the future. In more serious cases, however, an individual may be an athlete and his/her playing career may be at stake.
 
