@@ -68,5 +68,4 @@ unlink(filetmp)
 rm(i,fileurl,filetmp,filesrc,filenam,filels,filein)
 ```
 
-The emotional trauma of incurring physical injury resulting from events such as natural disaster, sports injury, assault, car accident, or accidental fall — can increase the risk of a person developing symptoms and disorders such as, anxiety, depression, panic attacks, anger/frustration, isolation, lack of motivation, insomnia, substance use or abuse, post-traumatic stress disorder (PTSD), and post-concussive syndrome. In addition, mental and emotional symptoms and disorders can be further complicated and exacerbated when injuries result in a loss of skills and opportunities that include the following: being unable to participate in everyday activities such as work, study and socializing; worries about finances and the future. In more serious cases, however, an individual may be an athlete and his/her playing career may be at stake.
 
