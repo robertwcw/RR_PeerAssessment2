@@ -27,7 +27,10 @@ library(data.table)
 library(xts)
 ```
 
-#### Loading storm data into R workspace.
+#### Data Loading
+
+Loading *raw* storm data in comma-delimited text file into R workspace from Coursera course website, by-passing unnecessary intermediate manual processes, stored as data.table class object for memory efficiency. 
+
 ```{r data.load}
 # loading data downloaded from course website into R workspace 
 
@@ -65,6 +68,19 @@ for (i in 1:length(filels))
 unlink(filetmp)
 rm(i,fileurl,filetmp,filesrc,filenam,filels,filein)
 ```
+&nbsp;
+
+#### Exploratory Data Analysis
+
+One *raw* data set named **StormData** object was extracted from the NOAA's sourced data downloaded from the course website. 
+
+Structure of **StormData** data set.
+```{r struc.StormData}
+str(StormData)
+```
+
+
+
 
 
 ```{r house.keeping}
