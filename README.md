@@ -3,6 +3,4 @@ Reproducible Research Peer Assessment 2
 
 Abstract.
 
-Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
-
-This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns which types of events give rise to deleterious social impact aftermath in respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of the relevant metrics of the number of human injuries/fatalities, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011. 
