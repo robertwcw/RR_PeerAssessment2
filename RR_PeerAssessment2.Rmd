@@ -26,10 +26,11 @@ source(getRflib("strCap.R"),local = TRUE)
 library(data.table)
 library(xts)
 ```
+&nbsp;
 
 #### Data Loading
 
-Loading *raw* storm data in comma-delimited text file into R workspace from Coursera course website, by-passing unnecessary intermediate manual processes, stored as data.table class object for memory efficiency. 
+Loading *raw* storm data set in comma-delimited text file downloaded from Coursera course website into R workspace as data.table class object with naming derive from the data source programmatically, by-passing manual staging process.
 
 ```{r data.load}
 # loading data downloaded from course website into R workspace 
@@ -43,7 +44,7 @@ download.file(fileurl, filetmp)
 
 if (!dir.exists(datadir)) {dir.create(datadir)}
 
-# extract source data file name as name of working data object in workspace 
+# extract source data file name as name of work data object in workspace 
 filels <- strsplit(basename(fileurl), "%2F", fixed = TRUE)[[1]]
 for (i in 1:length(filels)) 
         {
@@ -66,17 +67,19 @@ for (i in 1:length(filels))
 # close(filesrc)
 
 unlink(filetmp)
-rm(i,fileurl,filetmp,filesrc,filenam,filels,filein)
+rm(i,fileurl,filetmp,filesrc,filels,filein)
 ```
 &nbsp;
 
-#### Exploratory Data Analysis
+#### Exploratory Data Analysis      
 
-One *raw* data set named **StormData** object was extracted from the NOAA's sourced data downloaded from the course website. 
+A *raw* data set named **`r filenam`** data object was extracted from NOAA's sourced data downloaded from the course website.
 
 Structure of **StormData** data set.
 ```{r struc.StormData}
 str(StormData)
+
+l <- length(names(StormData))
 ```
 
 
