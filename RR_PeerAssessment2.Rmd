@@ -9,7 +9,7 @@ output:
 ---
 ## SYNOPSIS
 
-Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disaster. This data analysis attempts to address the concerns which types of events give rise to deleterious social impact aftermath in respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of the relevant metrics of the number of human injuries/fatalities, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
+Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns which types of events give rise to deleterious social impact aftermath with respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of the relevant metrics of the number of human injuries/fatalities, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
 &nbsp;
 
 #### Set up R workspace 
@@ -26,6 +26,7 @@ source(getRflib("strCap.R"),local = TRUE)
 library(data.table)
 library(xts)
 ```
+
 #### Loading storm data into R workspace.
 ```{r data.load}
 # loading data downloaded from course website into R workspace 
@@ -66,3 +67,7 @@ rm(i,fileurl,filetmp,filesrc,filenam,filels,filein)
 ```
 
 
+```{r house.keeping}
+detach("package:xts", unload = TRUE)
+detach("package:data.table", unload = TRUE)
+```
