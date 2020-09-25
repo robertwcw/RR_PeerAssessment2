@@ -30,7 +30,7 @@ library(xts)
 
 #### Data Loading
 
-Loading *raw* storm data set in comma-delimited text file downloaded from Coursera course website into R workspace as data.table class object with naming derive from the data source programmatically, by-passing manual staging process.
+Loading *raw* storm data set in comma-delimited text file downloaded from Coursera course website into R workspace as data.table class object with naming derive from the data source programmatically, by-passing manual data staging process.
 
 ```{r data.load}
 # loading data downloaded from course website into R workspace 
@@ -42,21 +42,21 @@ filetmp <- tempfile()
 
 download.file(fileurl, filetmp)
 
-if (!dir.exists(datadir)) {dir.create(datadir)}
+if (!dir.exists(datadir)) {
+        dir.create(datadir)
+}
 
 # extract source data file name as name of work data object in workspace 
 filels <- strsplit(basename(fileurl), "%2F", fixed = TRUE)[[1]]
-for (i in 1:length(filels)) 
-        {
+for (i in 1:length(filels)) {
         filein <- strsplit(filels[i], ".", fixed = TRUE)[[1]]
-        if (length(filein) > 1) 
-                {
+        if (length(filein) > 1) {
                 filenam <- filein[1]
                 filesrc <- bzfile(filetmp, open = "r")
                 assign(filenam, data.table(read.csv(filesrc)))
                 close(filesrc)
                 break # break the loop as only one data file found in the source
-                }
+        }
 }
 
 # filenam <- "stormdata"
@@ -73,13 +73,14 @@ rm(i,fileurl,filetmp,filesrc,filels,filein)
 
 #### Exploratory Data Analysis      
 
-A *raw* data set named **`r filenam`** data object was extracted from NOAA's sourced data downloaded from the course website.
+A *raw* data set named **`r print(filenam)`** data object was extracted from NOAA's sourced data downloaded from the course website.
 
 Structure of **StormData** data set.
 ```{r struc.StormData}
 str(StormData)
 
 l <- length(names(StormData))
+
 ```
 
 
