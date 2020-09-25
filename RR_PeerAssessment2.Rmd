@@ -9,11 +9,8 @@ output:
 ---
 ## SYNOPSIS
 
-Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health problems and economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed in the weather related disaster events. This data analysis attempts to address the concerns which types of events give rise to deleterious social impact aftermath in terms of economic and public health aspects. Based on US National Oceanic and Atmospheric Administration (NOAA) storm database, the relevant metrics used in this analysis are measurements for human injuries/fatalities, properties/crops damages and events types across the US from year 1950 to year 2011.
-
-in essence, we shall measure the injuries/fatalities as a function of events types, and crops/properties damages as function of events types.
-
-
+Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disaster. This data analysis attempts to address the concerns which types of events give rise to deleterious social impact aftermath in respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of the relevant metrics of the number of human injuries/fatalities, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
+&nbsp;
 
 #### Set up R workspace 
 ```{r setup, message=FALSE}
