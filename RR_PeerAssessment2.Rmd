@@ -12,7 +12,7 @@ output:
 Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns **WHERE** the events took place and **WHEN** the disasters struck by **WHAT** types of events give rise to deleterious social impact aftermath with respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of relevant metrics of the number of human injuries/fatalities, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
 &nbsp;
 
-#### Set up R workspace 
+#### Set up R workspace environment
 ```{r setup, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
@@ -24,13 +24,14 @@ source(getRflib("strCap.R"),local = TRUE)
 # source(getRflib("myplclust.R"),local = TRUE)
 
 library(data.table)
+library(dplyr)
 library(xts)
 ```
 &nbsp;
 
 #### Data Loading
 
-Loading *raw* storm data set in comma-delimited text file downloaded from Coursera course website into R workspace as data.table class object with naming derive from the data source programmatically, by-passing manual data staging process.
+Loading *raw* comma-delimited text file data set downloaded from Coursera course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
 
 ```{r data.load}
 # loading data downloaded from course website into R workspace 
@@ -39,6 +40,7 @@ Loading *raw* storm data set in comma-delimited text file downloaded from Course
 fileurl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
 datadir <- paste(".", "data", sep = "/")
 filetmp <- tempfile()
+filenam <- character()
 
 download.file(fileurl, filetmp)
 
@@ -51,13 +53,16 @@ filels <- strsplit(basename(fileurl), "%2F", fixed = TRUE)[[1]]
 for (i in 1:length(filels)) {
         filein <- strsplit(filels[i], ".", fixed = TRUE)[[1]]
         if (length(filein) > 1) {
-                filenam <- filein[1]
+                filenam[i] <- filein[1]
                 filesrc <- bzfile(filetmp, open = "r")
-                assign(filenam, data.table(read.csv(filesrc)))
-                close(filesrc)
-                break # break the loop as only one data file found in the source
+                assign(filenam[i], data.table(read.csv(filesrc)))
+                flush(filesrc)
+                # break 
         }
 }
+close(filesrc)
+
+i <- which(!is.na(filenam))
 
 # filenam <- "stormdata"
 # filenam <- paste(datadir, filenam, sep = "/")
@@ -67,27 +72,40 @@ for (i in 1:length(filels)) {
 # close(filesrc)
 
 unlink(filetmp)
-rm(i,fileurl,filetmp,filesrc,filels,filein)
+rm(fileurl,filetmp,filesrc,filels,filein)
 ```
 &nbsp;
 
-#### Exploratory Data Analysis      
+#### Exploratory Data Analysis
 
-A *raw* data set named **`r print(filenam)`** data object was extracted from NOAA's sourced data downloaded from the course website.
+```{r eda.0}
+for (p in 1:length(i)) {
+        print(paste(p, ":",filenam[i][p], "(",object.size(get(filenam[i][p]))/10e+05,"MB)"))
+}
+rm(p)
+```
+**`r length(i)`** *raw* data `r ifelse(length(i) > 1, "sets were", "set was")` extracted into R workspace from NOAA sourced data downloaded from course website. (number in bracket depicts memory footprint).
 
-Structure of **StormData** data set.
-```{r struc.StormData}
-str(StormData)
+Structure of data object **`r filenam[i][1]`**.
+```{r eda.1}
+str(get(filenam[i][1]))
+```
+**`r length(names(get(filenam[i][1])))`** columns found in the *raw* data set **`r filenam[i][1]`**. 
 
-l <- length(names(StormData))
+For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[i][1]`**. (see attached list)
+```{r eda.2}
+v <- c(2,3,4,5,6,7,8,12,13,19,20,22,23,24,25,26,27,28) # column number
+names(get(filenam[i][1]))[v]
+
+stormdata <- get(filenam[i][p]) %>%
+        select(names(.)[featls]) %>%
+        mutate(DATE_TIME = )
 
 ```
-
-
-
 
 
 ```{r house.keeping}
 detach("package:xts", unload = TRUE)
+detach("package:dplyr", unload = TRUE)
 detach("package:data.table", unload = TRUE)
 ```
