@@ -13,7 +13,7 @@ Natural disaster triggered by storms and abnormal weather phenomenons may lead t
 &nbsp;
 
 #### Set up R workspace environment
-```{r setup, message=FALSE}
+```{r setup, message=TRUE, resuts="hide"}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
@@ -25,15 +25,45 @@ source(getRflib("strCap.R"),local = TRUE)
 
 library(data.table)
 library(dplyr)
-library(xts)
+library(maps)
+# library(xts)
+
+# 'udf.num2gcs' user-defined function to convert LATITUDE & LONGITUDE coordinate values in integer class to xxx.yyyy format numeric class.
+udf.num2gcs <- function(X, y) { # y is number of significant digits.
+        if (is.na(X)) return(X)
+        x <- as.character(X)
+        l <- nchar(x)
+        ifelse(l < 3, return(as.numeric(x)),
+               ifelse(l == 3, y <- 1,
+                      ifelse(l == 4, y <- 2,
+                             ifelse(l > 4, y <- y, y <- 0))))
+        y <- l - y
+        as.numeric(paste0(x,"e",-y))
+}
+
+# 'udf.stripsign' user-defined function to strip -ve sign from numeric value
+udf.stripsign <- function(x) {
+        if (!is.null(x)) {
+                if (!is.na(x) & is.numeric(x)) {x <- x * sign(x)}
+        }
+        return(x)
+}
+
+# 'udf.prependsign' user-defined function to prepend -ve sign to numeric value
+udf.prependsign <- function(x) {
+        if (!is.null(x)) {
+                if (!is.na(x) & is.numeric(x)) {x <- x * sign(-x)}
+        }
+        return(x)
+}
 ```
 &nbsp;
 
 #### Data Loading
 
-Loading *raw* comma-delimited text file data set downloaded from Coursera course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
+Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
 
-```{r data.load}
+```{r data.load, cache=TRUE, resuts="hide"}
 # loading data downloaded from course website into R workspace 
 
 # set data source url to course website
@@ -57,55 +87,92 @@ for (i in 1:length(filels)) {
                 filesrc <- bzfile(filetmp, open = "r")
                 assign(filenam[i], data.table(read.csv(filesrc)))
                 flush(filesrc)
-                # break 
         }
 }
 close(filesrc)
 
-i <- which(!is.na(filenam))
+filenam <- unlist(filenam[which(!is.na(filenam))])
 
-# filenam <- "stormdata"
-# filenam <- paste(datadir, filenam, sep = "/")
-# filenam <- paste(filenam,"csv", "bz2", sep = ".")
-# filesrc <- bzfile(filenam, open = "w")
-# write.csv(StormData, filesrc, row.names = FALSE)
-# close(filesrc)
+# save an archive copy of StormData data.table to local `r datadir`
+for (i in 1:length(filenam)) {
+        fileout <- paste(datadir, filenam[i], sep = "/")
+        fileout <- paste(fileout, "csv", "bz2", sep = ".")
+        filesrc <- bzfile(fileout, open = "w")
+        write.csv(get(filenam[i]), filesrc, row.names = FALSE)
+        flush(filesrc)
+}
+close(filesrc)
 
 unlink(filetmp)
-rm(fileurl,filetmp,filesrc,filels,filein)
+rm(fileurl,filetmp,filesrc,filels,filein,fileout)
 ```
 &nbsp;
 
 #### Exploratory Data Analysis
 
 ```{r eda.0}
-for (p in 1:length(i)) {
-        print(paste(p, ":",filenam[i][p], "(",object.size(get(filenam[i][p]))/10e+05,"MB)"))
+for (i in 1:length(filenam)) {
+        print(paste(i, ":",filenam[i], "(",object.size(get(filenam[i]))/10e+05,"MB)"))
 }
-rm(p)
 ```
 **`r length(i)`** *raw* data `r ifelse(length(i) > 1, "sets were", "set was")` extracted into R workspace from NOAA sourced data downloaded from course website. (number in bracket depicts memory footprint).
 
-Structure of data object **`r filenam[i][1]`**.
+Structure of data object **1 : `r filenam[1]`**.
 ```{r eda.1}
-str(get(filenam[i][1]))
+str(get(filenam[1]))
 ```
-**`r length(names(get(filenam[i][1])))`** columns found in the *raw* data set **`r filenam[i][1]`**. 
+**`r length(names(get(filenam[1])))`** columns found in the *raw* data set **`r filenam[1]`**. 
 
-For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[i][1]`**. (see attached list)
-```{r eda.2}
-v <- c(2,3,4,5,6,7,8,12,13,19,20,22,23,24,25,26,27,28) # column number
+For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[1]`**. (see attached list)
+```{r data.proc, results = "hide"}
+# column number of the selected feature
+v <- c(2,3,4,5,6,7,8,12,13,19,20,22,23,24,25,26,27,28,32,33,34,35) 
 names(get(filenam[i][1]))[v]
 
-stormdata <- get(filenam[i][p]) %>%
-        select(names(.)[featls]) %>%
-        mutate(DATE_TIME = )
+d1 <- paste(sub(' .*','',get(filenam[i][1])$BGN_DATE),get(filenam[i][1])$BGN_TIME)
+d1[which(d1 == " " | d1 == "")] <- NA
+d1 <- as.POSIXct(strptime(d1, "%m/%d/%Y %H%M"))
 
+# HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended on END_DATE equates BGN_DATE at END_TIME in same county when END_DATE is empty but END_TIME is not. {END_DATE == "" & END_TIME != ""} 
+
+# HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended on END_DATE at END_TIME equates 23:59:59 (postulated) in same county when END_DATE is not empty but END_TIME contains empty value, though the event may continued on to neighbouring county. {END_DATE != "" & END_TIME == ""} 
+
+# HYPOTHESIS: {END_DATE == "" & END_TIME == ""} an event began on BGN_DATE at BGN_TIME in one county and is said to be ended in same county on END_DATE equates BGN_DATE at END_TIME equates 23:59:59 when END_DATE and END_TIME both contain empty values, though the event may continued on to neighbouring county at the cut-over time at 00:00:00 next-day.
+
+# HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended in the same county on END_DATE at END_TIME. {END_DATE != "" & END_TIME != ""} 
+
+
+d2 <- paste(sub(" .*","",get(filenam[i][1])$END_DATE),get(filenam[i][1])$END_TIME)
+d2[which(d2 == " " | d2 == "")] <- NA
+d2 <- as.POSIXct(strptime(d2, "%m/%d/%Y %H%M"))
+
+rm(d1,d2)
+
+# strip -ve sign from -ve numeric values (if any) found in LATITUDE & LONGITUDE vectors 
+  get(filenam[i][1])$LATITUDE <- sapply(X = get(filenam[i][1])$LATITUDE, FUN = udf.stripsign)
+
+  get(filenam[i][1])$LONGITUDE <- get(filenam[i][1])$LONGITUDE * sign(get(filenam[i][1])$LONGITUDE)
+  get(filenam[i][1])$LATITUDE_E <- get(filenam[i][1])$LATITUDE_E * sign(get(filenam[i][1])$LATITUDE_E) 
+  get(filenam[i][1])$LONGITUDE_ <- get(filenam[i][1])$LONGITUDE_ * sign(get(filenam[i][1])$LONGITUDE_)
+
+# # NOT USED
+# # prepend -ve sign to +ve numeric values of the LATITUDE & LONGITUDE vectors
+#   get(filenam[i][1])$LATITUDE * sign(-get(filenam[i][1])$LATITUDE)
+#   get(filenam[i][1])$LONGITUDE * sign(-get(filenam[i][1])$LONGITUDE)
+#   get(filenam[i][1])$LATITUDE_E * sign(-get(filenam[i][1])$LATITUDE_E)
+#   get(filenam[i][1])$LONGITUDE_ * sign(-get(filenam[i][1])$LONGITUDE_)
+
+# reformat integer values of LATITUDE & LONGITUDE vectors to proper coordinate format nnn.ddd
+  filenam[i][1]$LATITUDE <- sapply(X = get(filenam[i][1])$LATITUDE, FUN = udf.num2gcs, y = 3)
+  get(filenam[i][1])$LONGITUDE <- sapply(X = get(filenam[i][1])$LONGITUDE, FUN = udf.num2gcs, y = 3)
+  get(filenam[i][1])$LATITUDE_E <- sapply(X = get(filenam[i][1])$LATITUDE_E, FUN = udf.num2gcs, y = 3)
+  get(filenam[i][1])$LONGITUDE_ <- sapply(X = get(filenam[i][1])$LONGITUDE_, FUN = udf.num2gcs, y = 3)
+  
 ```
 
 
 ```{r house.keeping}
-detach("package:xts", unload = TRUE)
+# detach("package:xts", unload = TRUE)
 detach("package:dplyr", unload = TRUE)
 detach("package:data.table", unload = TRUE)
 ```
