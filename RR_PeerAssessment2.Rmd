@@ -24,37 +24,63 @@ source(getRflib("strCap.R"),local = TRUE)
 # source(getRflib("myplclust.R"),local = TRUE)
 
 library(data.table)
+# library(lubridate)
 library(dplyr)
 library(maps)
 # library(xts)
 
-# 'udf.num2gcs' user-defined function to convert LATITUDE & LONGITUDE coordinate values in integer class to xxx.yyyy format numeric class.
+# 'udf.num2gcs' user-defined function to convert LATITUDE & LONGITUDE coordinate values in integer type to nnn.dddd geographic coordinate system format 
 udf.num2gcs <- function(X, y) { # y is number of significant digits.
-        if (is.na(X)) return(X)
-        x <- as.character(X)
-        l <- nchar(x)
-        ifelse(l < 3, return(as.numeric(x)),
-               ifelse(l == 3, y <- 1,
-                      ifelse(l == 4, y <- 2,
-                             ifelse(l > 4, y <- y, y <- 0))))
-        y <- l - y
-        as.numeric(paste0(x,"e",-y))
+        if (!is.na(X) & !is.null(X) & is.numeric(X)) {
+                x <- as.character(X)
+                l <- nchar(x)
+                ifelse(l < 3, return(as.numeric(x)),
+                       ifelse(l == 3, y <- 1,
+                              ifelse(l == 4, y <- 2,
+                                     ifelse(l > 4, y <- y, y <- 0))))
+                y <- l - y
+                X <- as.numeric(paste0(x,"e",-y))
+        }
+        return(X)
 }
 
 # 'udf.stripsign' user-defined function to strip -ve sign from numeric value
 udf.stripsign <- function(x) {
-        if (!is.null(x)) {
-                if (!is.na(x) & is.numeric(x)) {x <- x * sign(x)}
+        if (!is.na(x) & !is.null(x) & is.numeric(x)) {
+                x <- x * sign(x)
         }
         return(x)
 }
 
 # 'udf.prependsign' user-defined function to prepend -ve sign to numeric value
 udf.prependsign <- function(x) {
-        if (!is.null(x)) {
-                if (!is.na(x) & is.numeric(x)) {x <- x * sign(-x)}
+        if (!is.na(x) & !is.null(x) & is.numeric(x)) {
+                x <- x * sign(-x)
         }
         return(x)
+}
+
+# 'udf.str2time' user-defined function to put TIME string into proper format
+udf.str2time <- function(x) {
+        l <- nchar(x)
+        x <- case_when(
+                l %in% c(3,4) ~ {
+                        z <- substr(strptime(sprintf("%04s", x), "%H%M"), 12, 19)
+                        ifelse(is.na(z) | z == "", 
+                               "00:00:00",
+                               substr(strptime(sprintf("%04s", x), "%H%M"), 12, 19))
+                },
+                l == 11 ~ {
+                        z <- substr(strptime(x, "%I:%M:%S %p"), 12, 19)
+                        ifelse(is.na(z),
+                               substr(strptime(x, "%H:%M:%S"), 12, 19),
+                               ifelse(z == "",
+                                      substr(strptime(x, "%H:%M:%S %p"), 12, 19),
+                                      z))
+                },
+                TRUE ~ x
+        )
+        return(x) 
 }
 ```
 &nbsp;
@@ -91,20 +117,21 @@ for (i in 1:length(filels)) {
 }
 close(filesrc)
 
-filenam <- unlist(filenam[which(!is.na(filenam))])
+filenam <- filenam[which(!is.na(filenam))]
 
-# save an archive copy of StormData data.table to local `r datadir`
-for (i in 1:length(filenam)) {
-        fileout <- paste(datadir, filenam[i], sep = "/")
-        fileout <- paste(fileout, "csv", "bz2", sep = ".")
-        filesrc <- bzfile(fileout, open = "w")
-        write.csv(get(filenam[i]), filesrc, row.names = FALSE)
-        flush(filesrc)
-}
-close(filesrc)
+# # save an archive copy of StormData data.table to local `r datadir`
+# for (i in 1:length(filenam)) {
+#         fileout <- paste(datadir, filenam[i], sep = "/")
+#         fileout <- paste(fileout, "csv", "bz2", sep = ".")
+#         filesrc <- bzfile(fileout, open = "w")
+#         write.csv(get(filenam[i]), filesrc, row.names = FALSE)
+#         flush(filesrc)
+# }
+# close(filesrc)
+# rm(fileout)
 
 unlink(filetmp)
-rm(fileurl,filetmp,filesrc,filels,filein,fileout)
+rm(fileurl,filetmp,filesrc,filels,filein)
 ```
 &nbsp;
 
@@ -112,28 +139,27 @@ rm(fileurl,filetmp,filesrc,filels,filein,fileout)
 
 ```{r eda.0}
 for (i in 1:length(filenam)) {
-        print(paste(i, ":",filenam[i], "(",object.size(get(filenam[i]))/10e+05,"MB)"))
+        print(paste(i, ":",filenam[i], "(",floor(object.size(get(filenam[i]))/10e+05),"MB)"))
 }
+rm(i)
 ```
-**`r length(i)`** *raw* data `r ifelse(length(i) > 1, "sets were", "set was")` extracted into R workspace from NOAA sourced data downloaded from course website. (number in bracket depicts memory footprint).
+**`r length(filenam)`** *raw* data `r ifelse(length(filenam) > 1, "sets were", "set was")` loaded into R workspace from NOAA sourced data downloaded from the course website. (number in bracket depicts memory footprint).
 
-Structure of data object **1 : `r filenam[1]`**.
+Structure of data object **`r filenam[1]`**.
 ```{r eda.1}
 str(get(filenam[1]))
 ```
 **`r length(names(get(filenam[1])))`** columns found in the *raw* data set **`r filenam[1]`**. 
 
-For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[1]`**. (see attached list)
+<!-- For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[1]`**. (see attached list) -->
+
 ```{r data.proc, results = "hide"}
-# column number of the selected feature
-v <- c(2,3,4,5,6,7,8,12,13,19,20,22,23,24,25,26,27,28,32,33,34,35) 
-names(get(filenam[i][1]))[v]
+# column number of the selected variable
+v <- c(1,2,3,4,5,6,7,8,12,13,19,20,21,22,23,24,25,26,27,28,32,33,34,35,37)
+names(get(filenam[1]))[v]
 
-d1 <- paste(sub(' .*','',get(filenam[i][1])$BGN_DATE),get(filenam[i][1])$BGN_TIME)
-d1[which(d1 == " " | d1 == "")] <- NA
-d1 <- as.POSIXct(strptime(d1, "%m/%d/%Y %H%M"))
 
-# HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended on END_DATE equates BGN_DATE at END_TIME in same county when END_DATE is empty but END_TIME is not. {END_DATE == "" & END_TIME != ""} 
+# HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to end on END_DATE equates BGN_DATE at END_TIME in same county when END_DATE is empty but END_TIME is not. {END_DATE == "" & END_TIME != ""} 
 
 # HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended on END_DATE at END_TIME equates 23:59:59 (postulated) in same county when END_DATE is not empty but END_TIME contains empty value, though the event may continued on to neighbouring county. {END_DATE != "" & END_TIME == ""} 
 
@@ -142,32 +168,28 @@ d1 <- as.POSIXct(strptime(d1, "%m/%d/%Y %H%M"))
 # HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended in the same county on END_DATE at END_TIME. {END_DATE != "" & END_TIME != ""} 
 
 
-d2 <- paste(sub(" .*","",get(filenam[i][1])$END_DATE),get(filenam[i][1])$END_TIME)
-d2[which(d2 == " " | d2 == "")] <- NA
-d2 <- as.POSIXct(strptime(d2, "%m/%d/%Y %H%M"))
+d1 <- sub(" .*", "", StormData$BGN_DATE)
+d2 <- gsub("[oO]", "0", StormData$BGN_TIME) # rectify typo error of 'O' for '0'
+d2 <- sub("12:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
+d2 <- sub("00:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
+d2 <- unlist(lapply(d2, udf.str2time)) # unify various time format to "hh:mm:ss"
 
-rm(d1,d2)
+StormData <- StormData %>% mutate(EV_TIMESTAMP = as.POSIXct(strptime(paste(d1,d2), "%m/%d/%Y %H:%M:%S")))
 
-# strip -ve sign from -ve numeric values (if any) found in LATITUDE & LONGITUDE vectors 
-  get(filenam[i][1])$LATITUDE <- sapply(X = get(filenam[i][1])$LATITUDE, FUN = udf.stripsign)
-
-  get(filenam[i][1])$LONGITUDE <- get(filenam[i][1])$LONGITUDE * sign(get(filenam[i][1])$LONGITUDE)
-  get(filenam[i][1])$LATITUDE_E <- get(filenam[i][1])$LATITUDE_E * sign(get(filenam[i][1])$LATITUDE_E) 
-  get(filenam[i][1])$LONGITUDE_ <- get(filenam[i][1])$LONGITUDE_ * sign(get(filenam[i][1])$LONGITUDE_)
 
 # # NOT USED
-# # prepend -ve sign to +ve numeric values of the LATITUDE & LONGITUDE vectors
-#   get(filenam[i][1])$LATITUDE * sign(-get(filenam[i][1])$LATITUDE)
-#   get(filenam[i][1])$LONGITUDE * sign(-get(filenam[i][1])$LONGITUDE)
-#   get(filenam[i][1])$LATITUDE_E * sign(-get(filenam[i][1])$LATITUDE_E)
-#   get(filenam[i][1])$LONGITUDE_ * sign(-get(filenam[i][1])$LONGITUDE_)
+# # strip -ve sign from -ve numeric values found in LATITUDE & LONGITUDE vectors 
+#   StormData$LATITUDE <- sapply(StormData$LATITUDE, udf.stripsign)
+#   StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.stripsign)
 
-# reformat integer values of LATITUDE & LONGITUDE vectors to proper coordinate format nnn.ddd
-  filenam[i][1]$LATITUDE <- sapply(X = get(filenam[i][1])$LATITUDE, FUN = udf.num2gcs, y = 3)
-  get(filenam[i][1])$LONGITUDE <- sapply(X = get(filenam[i][1])$LONGITUDE, FUN = udf.num2gcs, y = 3)
-  get(filenam[i][1])$LATITUDE_E <- sapply(X = get(filenam[i][1])$LATITUDE_E, FUN = udf.num2gcs, y = 3)
-  get(filenam[i][1])$LONGITUDE_ <- sapply(X = get(filenam[i][1])$LONGITUDE_, FUN = udf.num2gcs, y = 3)
-  
+# prepend -ve sign to +ve numeric values of the LATITUDE & LONGITUDE vectors
+StormData$LATITUDE <- sapply(StormData$LATITUDE, udf.prependsign)
+StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.prependsign)
+
+# reformat LATITUDE & LONGITUDE vectors to proper geographic coordinate system format nnn.ddd
+  StormData$LATITUDE <- sapply(StormData$LATITUDE, udf.num2gcs, 3)
+  StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.num2gcs, 3)
+
 ```
 
 
