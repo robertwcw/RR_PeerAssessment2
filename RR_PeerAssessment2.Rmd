@@ -187,13 +187,13 @@ rm(d1,d2)
   numsign <- sign(StormData$LATITUDE)
   lat <- sapply(StormData$LATITUDE, udf.stripsign)
   lat <- sapply(lat, udf.num2gcs, 2) # param '2' is number of significant digits
-  StormData$LATITUDE <- lat * numsign 
+  StormData$LATITUDE <- lat * (numsign * numsign) # LATs belong to northern hemisphere 
   
 # reformat LONGITUDE to geographic coordinate system format nnn.ddd
   numsign <- sign(StormData$LONGITUDE)
   lon <- sapply(StormData$LONGITUDE, udf.stripsign)
   lon <- sapply(lon, udf.num2gcs, 3) # param '3' is number of significant digits
-  StormData$LONGITUDE <- lon * numsign 
+  StormData$LONGITUDE <- lon * (numsign * -numsign) # LONs belong to western hemisphere
 ```
 
 
