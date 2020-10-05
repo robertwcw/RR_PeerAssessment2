@@ -194,6 +194,13 @@ rm(d1,d2)
   lon <- sapply(StormData$LONGITUDE, udf.stripsign)
   lon <- sapply(lon, udf.num2gcs, 3) # param '3' is number of significant digits
   StormData$LONGITUDE <- lon * (numsign * -numsign) # LONs belong to western hemisphere
+  
+rm(lon, lat)  
+
+StormData$EVTYPE <- factor(StormData$EVTYPE)
+StormData$STATE <- factor(StormData$STATE)
+
+
 ```
 
 
