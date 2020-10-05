@@ -167,7 +167,8 @@ names(get(filenam[1]))[v]
 
 # HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended in the same county on END_DATE at END_TIME. {END_DATE != "" & END_TIME != ""} 
 
-
+#    user  system elapsed 
+# 583.327 108.792 695.236 
 d1 <- sub(" .*", "", StormData$BGN_DATE)
 d2 <- gsub("[oO]", "0", StormData$BGN_TIME) # rectify typo error of 'O' for '0'
 d2 <- sub("12:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
@@ -176,20 +177,23 @@ d2 <- unlist(lapply(d2, udf.str2time)) # unify various time format to "hh:mm:ss"
 
 StormData <- StormData %>% mutate(EV_TIMESTAMP = as.POSIXct(strptime(paste(d1,d2), "%m/%d/%Y %H:%M:%S")))
 
+rm(d1,d2)
 
-# # NOT USED
-# # strip -ve sign from -ve numeric values found in LATITUDE & LONGITUDE vectors 
-#   StormData$LATITUDE <- sapply(StormData$LATITUDE, udf.stripsign)
-#   StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.stripsign)
+# # # NOT USED
+# # prepend -ve sign to LONGITUDE values belong to the western hemisphere
+#   StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.prependsign)
 
-# prepend -ve sign to +ve numeric values of the LATITUDE & LONGITUDE vectors
-StormData$LATITUDE <- sapply(StormData$LATITUDE, udf.prependsign)
-StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.prependsign)
-
-# reformat LATITUDE & LONGITUDE vectors to proper geographic coordinate system format nnn.ddd
-  StormData$LATITUDE <- sapply(StormData$LATITUDE, udf.num2gcs, 3)
-  StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.num2gcs, 3)
-
+# reformat LATITUDE to geographic coordinate system format nnn.ddd
+  numsign <- sign(StormData$LATITUDE)
+  lat <- sapply(StormData$LATITUDE, udf.stripsign)
+  lat <- sapply(lat, udf.num2gcs, 2) # param '2' is number of significant digits
+  StormData$LATITUDE <- lat * numsign 
+  
+# reformat LONGITUDE to geographic coordinate system format nnn.ddd
+  numsign <- sign(StormData$LONGITUDE)
+  lon <- sapply(StormData$LONGITUDE, udf.stripsign)
+  lon <- sapply(lon, udf.num2gcs, 3) # param '3' is number of significant digits
+  StormData$LONGITUDE <- lon * numsign 
 ```
 
 
