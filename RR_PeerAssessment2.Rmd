@@ -167,6 +167,7 @@ names(get(filenam[1]))[v]
 
 # HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended in the same county on END_DATE at END_TIME. {END_DATE != "" & END_TIME != ""} 
 
+
 #    user  system elapsed 
 # 571.131  96.633 667.883 
 d1 <- sub(" .*", "", StormData$BGN_DATE)
@@ -197,11 +198,9 @@ rm(d1,d2)
   lon <- sapply(lon, udf.num2gcs, 3) # param '3' is number of significant digits
   StormData$LONGITUDE <- lon * (numsign * -numsign) # LONs belong to western hemisphere
 
-rm(lon, lat)  
+rm(lon, lat, numsign)  
 
-StormData$EVTYPE <- stormdata$EVTYPE
 StormData$EVTYPE <- toupper(StormData$EVTYPE)
-
 StormData$EVTYPE <- gsub("[\\]", " ", StormData$EVTYPE)
 StormData$EVTYPE <- gsub("[\\/]", " ", StormData$EVTYPE)
 StormData$EVTYPE <- gsub("[A-Z]\\- [A-Z]|[A-Z] \\-[A-Z]|[A-Z]\\-[A-Z]", " - ", StormData$EVTYPE)
@@ -213,11 +212,10 @@ repeat {
         if (length(grep("  ", StormData$EVTYPE)) == 0) {break}
 }
 StormData$EVTYPE <- trimws(StormData$EVTYPE)
-StormData$EVTYPE <- factor(x = StormData$EVTYPE)
+StormData$EVTYPE <- factor(x = StormData$EVTYPE, levels = unique(StormData$EVTYPE))
 
-StormData$STATE <- stormdata$STATE
 StormData$STATE <- toupper(trimws(StormData$STATE))
-StormData$STATE <- factor(x = StormData$STATE) 
+StormData$STATE <- factor(x = StormData$STATE, levels = unique(StormData$STATE)) 
 
 ```
 
