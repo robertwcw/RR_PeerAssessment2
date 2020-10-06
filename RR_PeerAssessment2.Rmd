@@ -13,7 +13,7 @@ Natural disaster triggered by storms and abnormal weather phenomenons may lead t
 &nbsp;
 
 #### Set up R workspace environment
-```{r setup, message=TRUE, resuts="hide"}
+```{r setup, message=TRUE, echo=FALSE, resuts="hide"}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
@@ -89,7 +89,7 @@ udf.str2time <- function(x) {
 
 Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
 
-```{r data.load, cache=TRUE, resuts="hide"}
+```{r data.load, cache=TRUE, echo=FALSE, resuts="hide"}
 # loading data downloaded from course website into R workspace 
 
 # set data source url to course website
@@ -168,7 +168,7 @@ names(get(filenam[1]))[v]
 # HYPOTHESIS: an event began on BGN_DATE at BGN_TIME in one county and is said to be ended in the same county on END_DATE at END_TIME. {END_DATE != "" & END_TIME != ""} 
 
 #    user  system elapsed 
-# 583.327 108.792 695.236 
+# 571.131  96.633 667.883 
 d1 <- sub(" .*", "", StormData$BGN_DATE)
 d2 <- gsub("[oO]", "0", StormData$BGN_TIME) # rectify typo error of 'O' for '0'
 d2 <- sub("12:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
@@ -183,23 +183,41 @@ rm(d1,d2)
 # # prepend -ve sign to LONGITUDE values belong to the western hemisphere
 #   StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.prependsign)
 
-# reformat LATITUDE to geographic coordinate system format nnn.ddd
+# reformat LATITUDE vector to geographic coordinate system format nnn.ddd
   numsign <- sign(StormData$LATITUDE)
   lat <- sapply(StormData$LATITUDE, udf.stripsign)
   lat <- sapply(lat, udf.num2gcs, 2) # param '2' is number of significant digits
   StormData$LATITUDE <- lat * (numsign * numsign) # LATs belong to northern hemisphere 
-  
-# reformat LONGITUDE to geographic coordinate system format nnn.ddd
+
+#    user  system elapsed 
+# 39.976   0.271  40.281 
+# reformat LONGITUDE vector to geographic coordinate system format nnn.ddd
   numsign <- sign(StormData$LONGITUDE)
   lon <- sapply(StormData$LONGITUDE, udf.stripsign)
   lon <- sapply(lon, udf.num2gcs, 3) # param '3' is number of significant digits
   StormData$LONGITUDE <- lon * (numsign * -numsign) # LONs belong to western hemisphere
-  
+
 rm(lon, lat)  
 
-StormData$EVTYPE <- factor(StormData$EVTYPE)
-StormData$STATE <- factor(StormData$STATE)
+StormData$EVTYPE <- stormdata$EVTYPE
+StormData$EVTYPE <- toupper(StormData$EVTYPE)
 
+StormData$EVTYPE <- gsub("[\\]", " ", StormData$EVTYPE)
+StormData$EVTYPE <- gsub("[\\/]", " ", StormData$EVTYPE)
+StormData$EVTYPE <- gsub("[A-Z]\\- [A-Z]|[A-Z] \\-[A-Z]|[A-Z]\\-[A-Z]", " - ", StormData$EVTYPE)
+StormData$EVTYPE <- gsub("WATERSPOUT-", "WATERSPOUT", StormData$EVTYPE)
+StormData$EVTYPE <- gsub("WIND\\.|WINDS\\.", "WIND", StormData$EVTYPE)
+StormData$EVTYPE <- gsub("ING.", "ING ", StormData$EVTYPE)
+repeat {
+        StormData$EVTYPE <- gsub("  ", " ", StormData$EVTYPE)
+        if (length(grep("  ", StormData$EVTYPE)) == 0) {break}
+}
+StormData$EVTYPE <- trimws(StormData$EVTYPE)
+StormData$EVTYPE <- factor(x = StormData$EVTYPE)
+
+StormData$STATE <- stormdata$STATE
+StormData$STATE <- toupper(trimws(StormData$STATE))
+StormData$STATE <- factor(x = StormData$STATE) 
 
 ```
 
