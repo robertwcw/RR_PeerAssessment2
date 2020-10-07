@@ -212,10 +212,10 @@ repeat {
         if (length(grep("  ", StormData$EVTYPE)) == 0) {break}
 }
 StormData$EVTYPE <- trimws(StormData$EVTYPE)
-StormData$EVTYPE <- factor(x = StormData$EVTYPE, levels = unique(StormData$EVTYPE))
+StormData$EVTYPE <- factor(x = StormData$EVTYPE)
 
 StormData$STATE <- toupper(trimws(StormData$STATE))
-StormData$STATE <- factor(x = StormData$STATE, levels = unique(StormData$STATE)) 
+StormData$STATE <- factor(x = StormData$STATE) 
 
 ```
 
