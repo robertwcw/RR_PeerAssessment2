@@ -219,6 +219,77 @@ StormData$STATE <- factor(x = StormData$STATE)
 
 ```
 
+```{r data.analytic, warnings=FALSE}
+par.def <- par() # make a copy of default graphic parameters.
+
+# all states of the USA (exclude off-shore territories).
+states <- c(unique(state.fips$abb), "AK", "HI") 
+
+# set up colour palette.
+set.seed(9)
+N <- sample.int(502, 251)
+N <- sample(N, 40)
+pal <- colors(TRUE)[N]
+
+# subset of StormData across the USA (exclude off-shore territories).
+stormsub <- StormData %>% 
+        select(EV_TIMESTAMP,EVTYPE,LONGITUDE,LATITUDE,STATE,COUNTY,
+               FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP) %>%
+        filter(as.character(STATE) %in% states & 
+                (!is.na(LONGITUDE) & !is.na(LATITUDE)) & 
+                       (LONGITUDE != 0 & LATITUDE != 0)) %>%
+        arrange(EV_TIMESTAMP)
+stormsub$EVTYPE <- as.character(stormsub$EVTYPE)
+stormsub$EVTYPE <- sub("WATERSPOUT", "WS", stormsub$EVTYPE)
+stormsub$EVTYPE <- sub("TORNADO(ES| F0| F1| F3)", "TORNADO", stormsub$EVTYPE)
+stormsub$EVTYPE <- sub("THUNDERSTORM", "TSTM", stormsub$EVTYPE)
+stormsub$EVTYPE <- as.factor(stormsub$EVTYPE)
+
+# aggregate of weather events that triggered the occurrences of fatalities/injuries and properties/crops damages aggregated across the USA.
+evcnt <- stormsub %>%
+        select(STATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, CROPDMG) %>%
+        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
+        group_by(EVTYPE) %>%
+        count(EVTYPE) 
+
+evty.pal <- cbind(matrix(evcnt$EVTYPE),
+                  pal[seq(length(pal), by = -1, length.out = length(evcnt$EVTYPE))])
+pal <- pal[seq(length(pal), by = -1, length.out = length(evcnt$EVTYPE))]
+
+# evcnt <- evcnt %>% mutate(typal = evty.pal[which(evty.pal[,1] == EVTYPE),2])
+
+# set up global graphics parameters for the plots
+par(mfrow = c(2,1), ann = FALSE)
+
+# plotting barchart for weather events that triggered the occurrences of fatalities/injuries and properties/crops damages aggregated across the USA.
+par(mai = c(0.25,1.20,0.50,1.20), las = 1, cex.axis = 0.65)
+barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVTYPE))
+m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
+for (i in 1:length(m)) {text(1, m[i], evcnt$n[i], pos = 4, cex = 0.60)}
+mtext("Aggregate Frequency of Events Observed across The USA (1950 ~ 2011)", side = 1, line = -2, adj = 1, cex = 0.65)
+
+# aggregate of weather events that triggered the occurrences of fatalities/injuries and properties/crops damages for individual state.
+evcnt <- stormsub %>%
+        select(STATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, CROPDMG) %>%
+        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
+        group_by(EVTYPE, STATE) %>%
+        count(EVTYPE, STATE) 
+
+# evcnt <- evcnt %>% mutate(typal = evty.pal[which(evty.pal[,1] == EVTYPE),2])
+
+# plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for individual state.
+par(mai = c(1.00,1.20,0.25,1.20), cex.axis = 0.6, cex.lab = 0.65, ann = TRUE)
+barplot(n ~ EVTYPE + as.character(STATE), data = evcnt, 
+        horiz = FALSE, 
+        border = NA,
+        col = pal,
+        ylab = "Type Aggregate",
+        xlab = "States")
+
+suppressWarnings(par(par.def))
+
+# title(main = "Aggregate Weather Events of USA (1950 ~ 2011)", outer = TRUE)
+```
 
 ```{r house.keeping}
 # detach("package:xts", unload = TRUE)
