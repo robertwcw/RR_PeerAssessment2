@@ -129,6 +129,13 @@ filenam <- filenam[which(!is.na(filenam))]
 # }
 # close(filesrc)
 # rm(fileout)
+# 
+# filesrc <- paste(datadir, "StormData.csv.bz2", "/")
+# filesrc <- bzfile(filesrc, open = "r")
+# StormData <- data.table(read.csv(filesrc, skip = 1))
+# flush(filesrc)
+# close(filesrc)
+
 
 unlink(filetmp)
 rm(fileurl,filetmp,filesrc,filels,filein)
@@ -228,7 +235,7 @@ states <- c(unique(state.fips$abb), "AK", "HI")
 # set up colour palette.
 set.seed(9)
 N <- sample.int(502, 251)
-N <- sample(N, 40)
+N <- sample(N, 66)
 pal <- colors(TRUE)[N]
 
 # subset of StormData across the USA (exclude off-shore territories).
@@ -252,11 +259,7 @@ evcnt <- stormsub %>%
         group_by(EVTYPE) %>%
         count(EVTYPE) 
 
-evty.pal <- cbind(matrix(evcnt$EVTYPE),
-                  pal[seq(length(pal), by = -1, length.out = length(evcnt$EVTYPE))])
 pal <- pal[seq(length(pal), by = -1, length.out = length(evcnt$EVTYPE))]
-
-# evcnt <- evcnt %>% mutate(typal = evty.pal[which(evty.pal[,1] == EVTYPE),2])
 
 # set up global graphics parameters for the plots
 par(mfrow = c(2,1), ann = FALSE)
@@ -266,7 +269,8 @@ par(mai = c(0.25,1.20,0.50,1.20), las = 1, cex.axis = 0.65)
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVTYPE))
 m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {text(1, m[i], evcnt$n[i], pos = 4, cex = 0.60)}
-mtext("Aggregate Frequency of Events Observed across The USA (1950 ~ 2011)", side = 1, line = -2, adj = 1, cex = 0.65)
+mtext("Aggregate Frequency of Events Observed across The USA (1950 ~ 2011)", 
+      side = 1, line = -2, adj = 1, cex = 0.65)
 
 # aggregate of weather events that triggered the occurrences of fatalities/injuries and properties/crops damages for individual state.
 evcnt <- stormsub %>%
@@ -275,9 +279,7 @@ evcnt <- stormsub %>%
         group_by(EVTYPE, STATE) %>%
         count(EVTYPE, STATE) 
 
-# evcnt <- evcnt %>% mutate(typal = evty.pal[which(evty.pal[,1] == EVTYPE),2])
-
-# plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for individual state.
+# plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for each state.
 par(mai = c(1.00,1.20,0.25,1.20), cex.axis = 0.6, cex.lab = 0.65, ann = TRUE)
 barplot(n ~ EVTYPE + as.character(STATE), data = evcnt, 
         horiz = FALSE, 
