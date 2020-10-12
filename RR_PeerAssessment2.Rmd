@@ -206,7 +206,6 @@ repeat {
 }
 
 StormData$STATE <- toupper(trimws(StormData$STATE))
-StormData$STATE <- factor(x = StormData$STATE) 
 
 
 # weather events classes  https://www.weather.gov/iwx/events
@@ -259,9 +258,9 @@ ev.class[7,3] <- "CLOUD|FUNNEL|WALL"
 ev.class[8,1] <- "H"
 ev.class[8,2] <- "WILD.FIRE"
 ev.class[8,3] <- "FIRE"
-ev.class[9,1] <- "I"
-ev.class[9,2] <- "LIGHTNING"
-ev.class[9,3] <- "LIGHTNING"
+ev.class[11,1] <- "I"
+ev.class[11,2] <- "LIGHTNING"
+ev.class[11,3] <- "LIGHTNING"
 ev.class[24,1] <- "X"         # EXCLUSION class. Hard-designated. DO NOT ALTER.
 ev.class[24,2] <- "EXCLUDED"  # class label. Hard-designated. DO NOT ALTER.
 ev.class[24,3] <- "SUMMARY"   # EXCLUSION keyword, change as necessary.
@@ -308,35 +307,28 @@ par.def <- par(no.readonly = TRUE) # snapshot of default graphic parameters.
 states <- c(unique(state.fips$abb), "AK", "HI") 
 
 # set up colour palette.
-set.seed(5)
+set.seed(2)
 i <- sample.int(502, 256)
 i <- sample(i, 66)
 pal <- colors(TRUE)[i]
 
 # assign ev.class.label to a character vector for simpler handling
-ev.clab <- character()
 ev.clvl <- ev.class[order(ev.class[1:23,1]),1:2]
-i <- 0
-repeat {
-        i <- i + 1
-        i <- ifelse(i > 23, break, i)
-        if (!is.na(ev.clvl[i,1])) {
-                ev.clab <- c(ev.clab, ev.clvl[i,2])
-        }
-}
+N <- NROW(ev.clvl) - sum(is.na(ev.clvl[,1]))
+pal <- pal[seq(length(pal), by = -2, length.out = N)]
+
 
 # subset of StormData across the USA (exclude off-shore territories).
 stormsub <- StormData %>% 
         select(EV_TIMESTAMP,EVCLASS,EVTYPE,LONGITUDE,LATITUDE,STATE,COUNTY,
                FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP) %>%
-        filter(as.character(STATE) %in% states & !(EVCLASS %in% c("X","Z"))) %>% 
+        filter(STATE %in% states & !(EVCLASS %in% c("X","Z"))) %>% 
+        mutate(STATE = factor(STATE),
+               EVCLASS = factor(EVCLASS, labels = ev.clvl[1:N,2])) %>%
+        arrange(EV_TIMESTAMP)
                 # (!is.na(LONGITUDE) & !is.na(LATITUDE)) &
                 #        (LONGITUDE != 0 & LATITUDE != 0)) %>%
-        mutate(EVCLASS = factor(EVCLASS, labels = ev.clab)) %>%
-        arrange(EV_TIMESTAMP)
 
-
-pal <- pal[seq(length(pal), by = -1, length.out = length(evcnt$EVCLASS))]
 
 # set up plotting layout and global graphics parameters 
 layout(matrix(c(1,2,
