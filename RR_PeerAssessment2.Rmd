@@ -89,7 +89,7 @@ udf.str2time <- function(x) {
 
 Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
 
-```{r data.load, cache=TRUE, echo=FALSE, resuts="hide"}
+```{r data.load, cache=TRUE, echo=FALSE}
 # loading data downloaded from course website into R workspace 
 
 # set data source url to course website
@@ -160,7 +160,7 @@ str(get(filenam[1]))
 
 <!-- For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[1]`**. (see attached list) -->
 
-```{r data.proc, results = "hide"}
+```{r data.proc, cache=TRUE, echo=FALSE}
 # column number of the selected variable
 v <- c(1,2,3,4,5,6,7,8,12,13,19,20,21,22,23,24,25,26,27,28,32,33,34,35,37)
 names(get(filenam[1]))[v]
@@ -222,9 +222,10 @@ StormData <- StormData %>% mutate(EVCLASS = character(1))
 # E - RAIN & FLOOD
 # F - HAILing condition
 # G - CLOUD condition that may lead to storm or tornado event
-# H - FIRE & LIGHTNING
-# I - OTHER events not classified 
+# H - FIRE 
+# I - LIGHTNING
 # X - EXCLUDED list - weather events to be excluded from processing
+# Z - OTHER events not classified 
 
 # Index 24, 25 & 26 of the ev.class array are the special designated classes.
 # DO NOT ALTER the hard-designated values in index 24, 25 & 26, except the EXCLUSION keyword for weather events at index [24,2].
@@ -276,7 +277,6 @@ evclass <- cbind(evclass.rowid, evclass.evtyp)
 StormData <- StormData %>% 
         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[24,1]))
 
-
 for (i in 1:23) {
         if (!is.na(ev.class[i,1]) & !is.na(ev.class[i,3])) {
                 evclass.rowid <- grep(ev.class[i,3], StormData$EVTYPE)
@@ -289,7 +289,6 @@ for (i in 1:23) {
         }
 }
 
-
 # 00. OTHER - weather events not classified by the regular class codes
 evclass.rowid <- as.integer(row.names(StormData))
 evclass.rowid <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
@@ -299,102 +298,10 @@ evclass <- rbind(evclass, evclass.tmp)
 StormData <- StormData %>% 
         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[26,1]))
 
-
-# # 1. TORNADO - tornado of all kinds ever recorded
-# evclass.rowid <- grep("TORNADO", StormData$EVTYPE)
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "TORNADO"))
-# 
-# # 2. EXTREME.TEMP - extreme cold/heat, drought, wild/forest fire
-# evclass.rowid <- grep("HEAT|HOT|DRY|DROUGHT|COLD|CHILL|FROST|TEMP", StormData$EVTYPE)
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "EXTREME.TEMP"))
-# 
-# # 3. SNOW.ICE - snow/ice/winter storm, blizzard, freeze, sleet
-# evclass.rowid <- grep("SNOW|ICE|WINTER|BLIZZARD|FREEZ(E|ING)|SLEET|ICY", StormData$EVTYPE)
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "SNOW.ICE"))
-# 
-# # 4. WIND.STORM - storm, hurricane, typhoon, high wind, gustnado, hail, turbulence, downburst, microburst, macroburst, dust devil/storm.
-# evclass.rowid <- grep("WIND|STORM|GUSTNADO|HURRICAN|TYPHOON|TURBULENCE|BURST|DUST|TSTM", StormData$EVTYPE)
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "WIND.STORM"))
-# 
-# # 5. RAIN.FLOOD - flash flood, flood
-# evclass.rowid <- grep("FLOOD|WET|RAIN|SHOWER|HEAVY|PRECIPITAT", StormData$EVTYPE)
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "RAIN.FLOOD"))
-# 
-# # 6. HAIL - hails of all sizes
-# evclass.rowid <- grep("HAIL", StormData$EVTYPE)
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "HAIL"))
-# 
-# # 7. CLOUD - funnel, wall clouds formation lead to severe weather
-# evclass.rowid <- grep("CLOUD|FUNNEL|WALL", StormData$EVTYPE)
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "CLOUD"))
-# 
-# # 8. FIRE.LIGHTNING - lightning strikes, forest/wild fire
-# evclass.rowid <- grep("LIGHTNING|FIRE", StormData$EVTYPE)
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "FIRE.LIGHTNING"))
-# 
-# # 9. OTHER - all other events not on EXCLUDED LIST
-# evclass.rowid <- as.integer(row.names(StormData))
-# evclass.tmp <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-# evclass.tmp <- evclass.tmp[!(evclass.tmp %in% evtype.exclude)]
-# if (length(evclass.tmp) > 0) {evclass.rowid <- evclass.tmp}
-# evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-# evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-# evclass <- rbind(evclass, evclass.tmp)
-# StormData <- StormData %>% 
-#         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "OTHER"))
-
 rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 ```
 
-```{r data.analytic, warnings=FALSE}
+```{r data.analytic}
 par.def <- par(no.readonly = TRUE) # snapshot of default graphic parameters.
 
 # all states of the USA (exclude off-shore affiliated territories).
@@ -402,9 +309,9 @@ states <- c(unique(state.fips$abb), "AK", "HI")
 
 # set up colour palette.
 set.seed(6)
-N <- sample.int(502, 251)
-N <- sample(N, 66)
-pal <- colors(TRUE)[N]
+i <- sample.int(502, 256)
+i <- sample(i, 66)
+pal <- colors(TRUE)[i]
 
 # assign ev.class.label to a character vector for simpler handling
 ev.clab <- character()
@@ -432,7 +339,12 @@ stormsub <- StormData %>%
 pal <- pal[seq(length(pal), by = -1, length.out = length(evcnt$EVCLASS))]
 
 # set up global graphics parameters for the plots
-par(mfrow = c(1,2), las = 1, cex.axis = 0.65, ann = FALSE)
+# par(mfrow = c(1,2), las = 1, cex.axis = 0.65, ann = FALSE)
+par(las = 1, cex.axis = 0.65, ann = FALSE)
+layout(matrix(c(1,2,
+                3,3,
+                4,4), nrow = 3, byrow = TRUE))
+
 
 # aggregate weather events across the USA.
 evcnt <- stormsub %>%
@@ -475,8 +387,8 @@ mtext("Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -2.00
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.75, adj = 1, cex = 0.65)
 
 
-par(par.def)
-par(mfrow = c(2,1), cex.axis = 0.60, cex.lab = 0.75, ann = FALSE)
+# par(mfrow = c(2,1), cex.axis = 0.60, cex.lab = 0.75, ann = FALSE)
+par(cex.axis = 0.60, cex.lab = 0.75, ann = FALSE, yaxt = "s")
 
 # weather events aggregate of individual state.
 evcnt <- stormsub %>%
@@ -492,7 +404,6 @@ barplot(n ~ EVCLASS + as.character(STATE), data = evcnt,
         col = pal)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -1.25, adj = 0, cex = 0.65)
 title(ylab = "Events Frequency of Individual-State")
-
 
 # aggregate weather events of individual state manifested in casualty and economic loss.
 evcnt <- stormsub %>%
@@ -514,6 +425,7 @@ par(par.def)
 
 # title(main = "Weather Events Aggregate Across The USA (1950 ~ 2011)", cex = 0.90)
 
+rm(i, v, maxtik, m, par.def, evcnt)
 ```
 
 ```{r house.keeping}
