@@ -233,33 +233,44 @@ StormData <- StormData %>% mutate(EVCLASS = character(1))
 # Index 26 - OTHER class, use for classifying weather events not classified by the regular class codes from index 1 to 23, and 25. Do NOT alter.
 # DO NOT assign empty string value to the array cells, otherwise will result in unexpected outcome.
 # DO NOT ALTER the sequence order of the default class codes and search keywords (array index 1 ~ 23).
-ev.class <- array(dim = c(26,2))
-ev.class[1,1] <- "A"
-ev.class[1,2] <- "TORNADO"
+ev.class <- array(dim = c(26,3))
+ev.class[1,1] <- "A"        # CLASS CODE
+ev.class[1,2] <- "TORNADO"  # CLASS LABEL
+ev.class[1,3] <- "TORNADO"  # SEARCH KEYWORD
 ev.class[2,1] <- "B"
-ev.class[2,2] <- "HEAT|HOT|DRY|DROUGHT|COLD|CHILL|FROST|TEMP"
+ev.class[2,2] <- "EXTREME.TEMP"
+ev.class[2,3] <- "HEAT|HOT|DRY|DROUGHT|COLD|CHILL|FROST|TEMP"
 ev.class[3,1] <- "C"
-ev.class[3,2] <- "SNOW|ICE|WINTER|BLIZZARD|FREEZ(E|ING)|SLEET|ICY"
+ev.class[3,2] <- "SNOW.ICE"
+ev.class[3,3] <- "SNOW|ICE|WINTER|BLIZZARD|FREEZ(E|ING)|SLEET|ICY"
 ev.class[4,1] <- "D"
-ev.class[4,2] <- "WIND|STORM|GUSTNA|HURRICAN|TYPHOON|TURBULENCE|BURST|DUST|TSTM"
+ev.class[4,2] <- "WIND.STORM"
+ev.class[4,3] <- "WIND|STORM|GUSTNA|HURRICAN|TYPHOON|TURBULENCE|BURST|DUST|TSTM"
 ev.class[5,1] <- "E"
-ev.class[5,2] <- "FLOOD|WET|RAIN|SHOWER|HEAVY|PRECIPITAT"
+ev.class[5,2] <- "RAIN.FLOOD"
+ev.class[5,3] <- "FLOOD|WET|RAIN|SHOWER|HEAVY|PRECIPITAT"
 ev.class[6,1] <- "F"
 ev.class[6,2] <- "HAIL"
+ev.class[6,3] <- "HAIL"
 ev.class[7,1] <- "G"
-ev.class[7,2] <- "CLOUD|FUNNEL|WALL"
+ev.class[7,2] <- "CLOUD"
+ev.class[7,3] <- "CLOUD|FUNNEL|WALL"
 ev.class[8,1] <- "H"
-ev.class[8,2] <- "FIRE"
+ev.class[8,2] <- "WILD.FIRE"
+ev.class[8,3] <- "FIRE"
 ev.class[9,1] <- "I"
 ev.class[9,2] <- "LIGHTNING"
+ev.class[9,3] <- "LIGHTNING"
 ev.class[24,1] <- "X"         # EXCLUSION class. Hard-designated. DO NOT ALTER.
-ev.class[24,2] <- "SUMMARY"   # EXCLUSION keyword, change as necessary.
+ev.class[24,2] <- "EXCLUDED"  # class label. Hard-designated. DO NOT ALTER.
+ev.class[24,3] <- "SUMMARY"   # EXCLUSION keyword, change as necessary.
 ev.class[26,1] <- "Z"         # Hard-designated. DO NOT ALTER.
-ev.class[26,2] <- "OTHER"     # OTHER class. DO NOT ALTER.
+ev.class[26,2] <- "OTHER"     # class label. Hard-designated. DO NOT ALTER.
+ev.class[26,3] <- "OTHER"     # OTHER class. DO NOT ALTER.
 
 
 # 0. EXCLUDED - weather events to exclude
-evclass.rowid <- grep(ev.class[24,2], StormData$EVTYPE)
+evclass.rowid <- grep(ev.class[24,3], StormData$EVTYPE)
 evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
 evclass <- cbind(evclass.rowid, evclass.evtyp)
 StormData <- StormData %>% 
@@ -267,8 +278,8 @@ StormData <- StormData %>%
 
 
 for (i in 1:23) {
-        if (!is.na(ev.class[i,1]) & !is.na(ev.class[i,2])) {
-                evclass.rowid <- grep(ev.class[i,2], StormData$EVTYPE)
+        if (!is.na(ev.class[i,1]) & !is.na(ev.class[i,3])) {
+                evclass.rowid <- grep(ev.class[i,3], StormData$EVTYPE)
                 evclass.rowid <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
                 evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
                 evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
@@ -386,70 +397,118 @@ rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 ```{r data.analytic, warnings=FALSE}
 par.def <- par(no.readonly = TRUE) # snapshot of default graphic parameters.
 
-# all states of the USA (exclude off-shore territories).
+# all states of the USA (exclude off-shore affiliated territories).
 states <- c(unique(state.fips$abb), "AK", "HI") 
 
 # set up colour palette.
-set.seed(3)
+set.seed(6)
 N <- sample.int(502, 251)
 N <- sample(N, 66)
 pal <- colors(TRUE)[N]
+
+# assign ev.class.label to a character vector for simpler handling
+ev.clab <- character()
+ev.clvl <- ev.class[order(ev.class[1:23,1]),1:2]
+i <- 0
+repeat {
+        i <- i + 1
+        i <- ifelse(i > 23, break, i)
+        if (!is.na(ev.clvl[i,1])) {
+                ev.clab <- c(ev.clab, ev.clvl[i,2])
+        }
+}
 
 # subset of StormData across the USA (exclude off-shore territories).
 stormsub <- StormData %>% 
         select(EV_TIMESTAMP,EVCLASS,EVTYPE,LONGITUDE,LATITUDE,STATE,COUNTY,
                FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP) %>%
-        filter(as.character(STATE) %in% states & EVCLASS != "EXCLUDED") %>% 
+        filter(as.character(STATE) %in% states & !(EVCLASS %in% c("X","Z"))) %>% 
                 # (!is.na(LONGITUDE) & !is.na(LATITUDE)) &
                 #        (LONGITUDE != 0 & LATITUDE != 0)) %>%
+        mutate(EVCLASS = factor(EVCLASS, labels = ev.clab)) %>%
         arrange(EV_TIMESTAMP)
-# stormsub$EVTYPE <- as.character(stormsub$EVTYPE)
-# stormsub$EVTYPE <- sub("WATERSPOUT", "WSPOUT", stormsub$EVTYPE)
-# stormsub$EVTYPE <- sub("TORNADO(ES| F0| F1| F3)", "TORNADO", stormsub$EVTYPE)
-# stormsub$EVTYPE <- sub("THUNDERSTORM", "TSTM", stormsub$EVTYPE)
-# stormsub$EVTYPE <- as.factor(stormsub$EVTYPE)
 
-# aggregate of weather events that triggered the occurrences of fatalities/injuries and properties/crops damages aggregated across the USA.
-evcnt <- stormsub %>%
-        select(STATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, CROPDMG) %>%
-        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
-        group_by(EVTYPE) %>%
-        count(EVTYPE) 
 
-pal <- pal[seq(length(pal), by = -1, length.out = length(evcnt$EVTYPE))]
+pal <- pal[seq(length(pal), by = -1, length.out = length(evcnt$EVCLASS))]
 
 # set up global graphics parameters for the plots
-par(mfrow = c(2,1), ann = FALSE)
+par(mfrow = c(1,2), ann = FALSE)
 
-# plotting barchart for weather events that triggered the occurrences of fatalities/injuries and properties/crops damages aggregated across the USA.
-par(mai = c(0.25,1.20,0.50,1.20), las = 1, cex.axis = 0.65)
-barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVTYPE))
+# aggregate weather events across the USA.
+evcnt <- stormsub %>%
+        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
+        group_by(EVCLASS) %>%
+        count(EVCLASS) 
 
+# plotting barchart for weather events aggregate across the USA.
+par(mai = c(0.75,1.15,0.50,0.15), las = 1, cex.axis = 0.65)
+barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
+
+maxtik <- max(axTicks(1))
 m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
-        ifelse(i == 9, v <- -2.0, v <- 0.5)
+        ifelse(evcnt$n[i] >= maxtik, v <- -2.0, v <- 0.25)
         text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = v, cex = 0.60)
 }
+# mtext("Weather Events Aggregate Across The USA (1950 ~ 2011)", cex = 1.00)
+# mtext("Weather Events Aggregate in USA (1950 ~ 2011)", side = 1, line = -2, adj = 1, cex = 0.75)
+# mtext("(US Affiliated Territories Not Included)", side = 1, line = -1.25, adj = 1, cex = 0.70)
 
-mtext("Aggregate of Weather Events Across The USA (1950 ~ 2011)", cex = 0.90)
-mtext("Aggregated Frequency of Events Observed Across The USA (1950 ~ 2011)", side = 1, line = -2, adj = 1, cex = 0.70)
-mtext("(US Affiliated Territories Not Included)", side = 1, line = -1.25, adj = 1, cex = 0.70)
-
-# aggregate of weather events that triggered the occurrences of fatalities/injuries and properties/crops damages for individual state.
+# aggregate weather events manifested in casualty and economic loss across the USA.
 evcnt <- stormsub %>%
-        select(STATE, EVTYPE, FATALITIES, INJURIES, PROPDMG, CROPDMG) %>%
+        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
         filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
-        group_by(EVTYPE, STATE) %>%
-        count(EVTYPE, STATE) 
+        group_by(EVCLASS) %>%
+        count(EVCLASS) 
 
-# plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for each state.
-par(mai = c(1.00,1.20,0.25,1.20), cex.axis = 0.60, cex.lab = 0.70, ann = TRUE)
-barplot(n ~ EVTYPE + as.character(STATE), data = evcnt, 
+# plotting barchart for weather events aggregated across the USA that manifested in fatalities/injuries and properties/crops damages across the USA.
+par(mai = c(0.75,0.15,0.50,1.15), yaxt = "n", las = 1, cex.axis = 0.65)
+barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
+
+maxtik <- max(axTicks(1))
+m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
+for (i in 1:length(m)) {
+        ifelse(evcnt$n[i] >= maxtik, v <- -2.0, v <- 0.25)
+        text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = v, cex = 0.60)
+}
+# mtext("Aggregate of Weather Events Manifested in Casualty & Economic Loss", side = 1, line = -2, adj = 1, cex = 0.80)
+# mtext("(US Affiliated Territories Not Included)", side = 1, line = -1.25, adj = 1, cex = 0.70)
+
+
+
+
+
+
+
+# weather events aggregate of individual state.
+evcnt <- stormsub %>%
+        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
+        group_by(EVCLASS, STATE) %>%
+        count(EVCLASS, STATE) 
+
+# plotting barchart for the occurrence of weather-events of each state.
+par(mai = c(1.00,1.15,0.25,0.15), cex.axis = 0.60, cex.lab = 0.70, ann = TRUE)
+barplot(n ~ EVCLASS + as.character(STATE), data = evcnt, 
         horiz = FALSE, 
         border = NA,
         col = pal,
-        ylab = "Aggregate by Event Type",
-        xlab = "STATES")
+        ylab = "Weather Events Frequency of Individual-State")
+
+
+
+# aggregate weather events of individual state manifested in casualty and economic loss.
+evcnt <- stormsub %>%
+        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
+        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
+        group_by(EVCLASS, STATE) %>%
+        count(EVCLASS, STATE) 
+
+# plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for each state.
+par(mai = c(1.00,0.50,0.25,0.50), cex.axis = 0.60, cex.lab = 0.70, ann = FALSE)
+barplot(n ~ EVCLASS + as.character(STATE), data = evcnt, 
+        horiz = FALSE, 
+        border = NA,
+        col = pal)
 
 par(par.def)
 ```
