@@ -308,7 +308,7 @@ par.def <- par(no.readonly = TRUE) # snapshot of default graphic parameters.
 states <- c(unique(state.fips$abb), "AK", "HI") 
 
 # set up colour palette.
-set.seed(6)
+set.seed(5)
 i <- sample.int(502, 256)
 i <- sample(i, 66)
 pal <- colors(TRUE)[i]
@@ -338,13 +338,11 @@ stormsub <- StormData %>%
 
 pal <- pal[seq(length(pal), by = -1, length.out = length(evcnt$EVCLASS))]
 
-# set up global graphics parameters for the plots
-# par(mfrow = c(1,2), las = 1, cex.axis = 0.65, ann = FALSE)
-par(las = 1, cex.axis = 0.65, ann = FALSE)
+# set up plotting layout and global graphics parameters 
 layout(matrix(c(1,2,
                 3,3,
                 4,4), nrow = 3, byrow = TRUE))
-
+par(las = 1, cex.axis = 0.65, ann = FALSE)
 
 # aggregate weather events across the USA.
 evcnt <- stormsub %>%
@@ -353,7 +351,7 @@ evcnt <- stormsub %>%
         count(EVCLASS) 
 
 # plotting barchart for weather events aggregate across the USA.
-par(mai = c(0.75,1.15,0.50,0.15))
+par(mai = c(0.50,1.15,0.50,0.15))
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
 
 maxtik <- max(axTicks(1))
@@ -362,7 +360,7 @@ for (i in 1:length(m)) {
         v <- ifelse(evcnt$n[i] >= maxtik, -2.25, 0.25)
         text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = v, cex = 0.70)
 }
-mtext("Aggregate Frequency of Weather Events in USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.75)
+mtext("Aggregate Frequency of Weather Events in USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.00, adj = 1, cex = 0.65)
 
 # aggregate weather events manifested in casualty and economic loss across the USA.
@@ -373,7 +371,7 @@ evcnt <- stormsub %>%
         count(EVCLASS) 
 
 # plotting barchart for weather events aggregated across the USA that manifested in fatalities/injuries and properties/crops damages across the USA.
-par(mai = c(0.75,0.15,0.50,1.15), yaxt = "n")
+par(mai = c(0.50,0.15,0.50,1.15), yaxt = "n")
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
 
 maxtik <- max(axTicks(1))
@@ -382,13 +380,11 @@ for (i in 1:length(m)) {
         ifelse(evcnt$n[i] >= maxtik, v <- -2.25, v <- 0.25)
         text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = v, cex = 0.70)
 }
-mtext("Aggregate Frequency of Weather Events in USA ()1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.75)
-mtext("Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -2.00, adj = 1, cex = 0.75)
+mtext("Aggregate Frequency of Weather Events in USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
+mtext("Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -2.00, adj = 1, cex = 0.70)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.75, adj = 1, cex = 0.65)
 
-
-# par(mfrow = c(2,1), cex.axis = 0.60, cex.lab = 0.75, ann = FALSE)
-par(cex.axis = 0.60, cex.lab = 0.75, ann = FALSE, yaxt = "s")
+par(cex.axis = 0.70, cex.lab = 0.80, ann = FALSE, yaxt = "s")
 
 # weather events aggregate of individual state.
 evcnt <- stormsub %>%
@@ -402,8 +398,9 @@ barplot(n ~ EVCLASS + as.character(STATE), data = evcnt,
         horiz = FALSE, 
         border = NA,
         col = pal)
-mtext("(US Affiliated Territories Not Included)", side = 3, line = -1.25, adj = 0, cex = 0.65)
-title(ylab = "Events Frequency of Individual-State")
+title(ylab = "Aggregate Frequency by Events")
+mtext("Weather Events of Individual-State", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
+mtext("(1950 ~ 2011)", side = 3, line = -2.00, adj = 0, padj = 0, cex = 0.65)
 
 # aggregate weather events of individual state manifested in casualty and economic loss.
 evcnt <- stormsub %>%
@@ -413,17 +410,17 @@ evcnt <- stormsub %>%
         count(EVCLASS, STATE) 
 
 # plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for each state.
-par(mai = c(1.00, 1.15, 0.25, 1.15))
+par(mai = c(0.25, 1.15, 0.25, 1.15))
 barplot(n ~ EVCLASS + as.character(STATE), data = evcnt, 
         horiz = FALSE, 
         border = NA,
         col = pal)
-mtext("(US Affiliated Territories Not Included)", side = 3, line = -1.25, adj = 0, cex = 0.65)
-title(ylab = "Events Frequency of Individual-State")
+title(ylab = "Aggregate Frequency by Events")
+mtext("Weather Events of Individual-State", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
+mtext("Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -2.00, adj = 0, padj = 0, cex = 0.70)
+mtext("(1950 ~ 2011)", side = 3, line = -2.75, adj = 0, padj = 0, cex = 0.65)
 
 par(par.def)
-
-# title(main = "Weather Events Aggregate Across The USA (1950 ~ 2011)", cex = 0.90)
 
 rm(i, v, maxtik, m, par.def, evcnt)
 ```
