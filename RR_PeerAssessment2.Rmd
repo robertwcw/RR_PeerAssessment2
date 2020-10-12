@@ -209,8 +209,9 @@ StormData$STATE <- toupper(trimws(StormData$STATE))
 StormData$STATE <- factor(x = StormData$STATE) 
 
 
-# weather events classes base on NWS classification https://www.weather.gov/iwx/events
+# weather events classes  https://www.weather.gov/iwx/events
 
+# Add a NEW column EVCLASS to StormData data set
 StormData <- StormData %>% mutate(EVCLASS = character(1))
 
 # weather event classification coding
@@ -231,6 +232,7 @@ StormData <- StormData %>% mutate(EVCLASS = character(1))
 # Index 25 - reserved.
 # Index 26 - OTHER class, use for classifying weather events not classified by the regular class codes from index 1 to 23, and 25. Do NOT alter.
 # DO NOT assign empty string value to the array cells, otherwise will result in unexpected outcome.
+# DO NOT ALTER the sequence order of the default class codes and search keywords (array index 1 ~ 23).
 ev.class <- array(dim = c(26,2))
 ev.class[1,1] <- "A"
 ev.class[1,2] <- "TORNADO"
@@ -285,8 +287,6 @@ evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
 evclass <- rbind(evclass, evclass.tmp)
 StormData <- StormData %>% 
         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[26,1]))
-
-
 
 
 # # 1. TORNADO - tornado of all kinds ever recorded
@@ -380,7 +380,7 @@ StormData <- StormData %>%
 # StormData <- StormData %>% 
 #         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, "OTHER"))
 
-
+rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 ```
 
 ```{r data.analytic, warnings=FALSE}
