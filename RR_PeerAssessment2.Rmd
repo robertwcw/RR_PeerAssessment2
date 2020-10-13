@@ -13,7 +13,7 @@ Natural disaster triggered by storms and abnormal weather phenomenons may lead t
 &nbsp;
 
 #### Set up R workspace environment
-```{r setup, message=TRUE, echo=FALSE, resuts="hide"}
+```{r setup, message=TRUE, echo=FALSE, results="hide"}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
@@ -89,7 +89,7 @@ udf.str2time <- function(x) {
 
 Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
 
-```{r data.load, cache=TRUE, echo=FALSE}
+```{r data.load, cache=TRUE, echo=TRUE, results="hide"}
 # loading data downloaded from course website into R workspace 
 
 # set data source url to course website
@@ -160,7 +160,7 @@ str(get(filenam[1]))
 
 <!-- For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[1]`**. (see attached list) -->
 
-```{r data.proc, cache=TRUE, echo=FALSE}
+```{r data.proc, cache=TRUE, echo=TRUE}
 # column number of the selected variable
 v <- c(1,2,3,4,5,6,7,8,12,13,19,20,21,22,23,24,25,26,27,28,32,33,34,35,37)
 names(get(filenam[1]))[v]
@@ -299,6 +299,7 @@ StormData <- StormData %>%
 
 rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 ```
+
 
 ```{r data.analytic}
 par.def <- par(no.readonly = TRUE) # snapshot of default graphic parameters.
