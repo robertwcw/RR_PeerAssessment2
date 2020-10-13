@@ -6,8 +6,8 @@ output:
   html_document: 
     fig_caption: yes
     keep_md: yes
-    fig_width: 11
-    fig_height: 7
+    fig_width: 13
+    fig_height: 9
 ---
 ## SYNOPSIS
 
@@ -25,9 +25,18 @@ source(getRflib("is.defined.R"),local = TRUE)
 source(getRflib("strCap.R"),local = TRUE)
 # source(getRflib("myplclust.R"),local = TRUE)
 
+if (!requireNamespace("data.table", quietly = TRUE)) {
+        install.packages("data.table")
+}
 library(data.table)
-# library(lubridate)
-library(dplyr)
+# if (!requireNamespace("dtplyr", quietly = TRUE)) {
+#         install.packages("dtplyr")
+# }
+# library(dtplyr)
+if (!requireNamespace("dplyr", quietly = TRUE)) {
+        install.packages("dplyr")
+}
+library(dplyr, warn.conflicts = FALSE)
 library(maps)
 # library(xts)
 
@@ -43,7 +52,7 @@ udf.num2gcs <- function(X, y) { # y is number of significant digits.
                 y <- l - y
                 X <- as.numeric(paste0(x,"e",-y))
         }
-        return(X)
+        X
 }
 
 # 'udf.stripsign' user-defined function to strip -ve sign from numeric value
@@ -51,7 +60,7 @@ udf.stripsign <- function(x) {
         if (!is.na(x) & !is.null(x) & is.numeric(x)) {
                 x <- x * sign(x)
         }
-        return(x)
+        x
 }
 
 # 'udf.prependsign' user-defined function to prepend -ve sign to numeric value
@@ -59,31 +68,49 @@ udf.prependsign <- function(x) {
         if (!is.na(x) & !is.null(x) & is.numeric(x)) {
                 x <- x * sign(-x)
         }
-        return(x)
+        x
 }
 
 # 'udf.str2time' user-defined function to put TIME string into proper format
 udf.str2time <- function(x) {
         l <- nchar(x)
-        x <- case_when(
-                l %in% c(3,4) ~ {
-                        z <- substr(strptime(sprintf("%04s", x), "%H%M"), 12, 19)
-                        ifelse(is.na(z) | z == "", 
-                               "00:00:00",
-                               substr(strptime(sprintf("%04s", x), "%H%M"), 12, 19))
-                },
-                l == 11 ~ {
-                        z <- substr(strptime(x, "%I:%M:%S %p"), 12, 19)
-                        ifelse(is.na(z),
-                               substr(strptime(x, "%H:%M:%S"), 12, 19),
-                               ifelse(z == "",
-                                      substr(strptime(x, "%H:%M:%S %p"), 12, 19),
-                                      z))
-                },
-                TRUE ~ x
-        )
-        return(x) 
+        if (i %in% c(3,4)) {
+                z <- substr(strptime(sprintf("%04s", x), "%H%M"), 12, 19)
+                ifelse(is.na(z) | z == "",
+                       x <- "00:00:00",
+                       x <- substr(strptime(sprintf("%04s", x), "%H%M"), 12, 19))
+        } else
+        if (l == 11) {
+                z <- substr(strptime(x, "%I:%M:%S %p"), 12, 19)
+                ifelse(is.na(z),
+                       x <- substr(strptime(x, "%H:%M:%S"), 12, 19),
+                       ifelse(z == "",
+                              x <- substr(strptime(x, "%H:%M:%S %p"), 12, 19),
+                              x <- z))
+        }
+        x
 }
+
+# 'udf.expont' user-defined function for converting number scale character to proper scientific notation.
+udf.expont <- function(x, y) {
+        ifelse(x %in% c("1","2","3","4","5","6","7","8","9"), x <- paste0("e+0",x),
+               ifelse(x == "H", x <- "e+02",
+                      ifelse(x == "K", x <- "e+03",
+                             ifelse(x == "M", x <- "e+06",
+                                    ifelse(x == "B", x <- "e+09", x <- "e+0")))))
+        as.numeric(paste0(as.character(y),x))
+}
+
+# all states of the USA (exclude off-shore affiliated territories).
+mystates <- c(unique(state.fips$abb), "AK", "HI") 
+
+# set up colour palette.
+set.seed(2)
+i <- sample.int(502, 256)
+i <- sample(i, 66)
+mypal <- colors(TRUE)[i]
+
+par.def <- par(no.readonly = TRUE) # snapshot of default graphic parameters.
 ```
 &nbsp;
 
@@ -166,8 +193,6 @@ str(get(filenam[1]))
 v <- c(1,2,3,4,5,6,7,8,12,13,19,20,21,22,23,24,25,26,27,28,32,33,34,35,37)
 names(get(filenam[1]))[v]
 
-#    user  system elapsed 
-# 601.279 116.964 720.355 
 d1 <- sub(" .*", "", StormData$BGN_DATE)
 d2 <- gsub("[oO]", "0", StormData$BGN_TIME) # rectify typo error of 'O' for '0'
 d2 <- sub("12:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
@@ -207,6 +232,8 @@ repeat {
 }
 
 StormData$STATE <- toupper(trimws(StormData$STATE))
+StormData$PROPDMGEXP <- toupper(trimws(StormData$PROPDMGEXP))
+StormData$CROPDMGEXP <- toupper(trimws(StormData$CROPDMGEXP))
 
 
 # weather events classes  https://www.weather.gov/iwx/events
@@ -227,11 +254,11 @@ StormData <- StormData %>% mutate(EVCLASS = character(1))
 # X - EXCLUDED list - weather events to be excluded from processing
 # Z - OTHER events not classified 
 
-# Index 24, 25 & 26 of the ev.class array are the special designated classes.
+# Array Index 24, 25 & 26 of the ev.class array are the special designated classes.
 # DO NOT ALTER the hard-designated values in index 24, 25 & 26, except the EXCLUSION keyword for weather events at index [24,2].
-# Index 24 - EXCLUSION class, use for assigning weather events that are to be excluded from analytic processing. Change the search keyword of the weather event in the character string at index[24,2] as require.
-# Index 25 - reserved.
-# Index 26 - OTHER class, use for classifying weather events not classified by the regular class codes from index 1 to 23, and 25. Do NOT alter.
+# Array Index 24 - EXCLUSION class, use for assigning weather events that are to be excluded from analytic processing. Change the search keyword of the weather event in the character string at index[24,2] as require.
+# Array Index 25 - reserved.
+# Array Index 26 - OTHER class, use for classifying weather events not classified by the regular class codes from index 1 to 23, and 25. Do NOT alter.
 # DO NOT assign empty string value to the array cells, otherwise will result in unexpected outcome.
 # DO NOT ALTER the sequence order of the default class codes and search keywords (array index 1 ~ 23).
 ev.class <- array(dim = c(26,3))
@@ -266,9 +293,11 @@ ev.class[24,1] <- "X"         # EXCLUSION class. Hard-designated. DO NOT ALTER.
 ev.class[24,2] <- "EXCLUDED"  # class label. Hard-designated. DO NOT ALTER.
 ev.class[24,3] <- "SUMMARY"   # EXCLUSION keyword, change as necessary.
 ev.class[26,1] <- "Z"         # Hard-designated. DO NOT ALTER.
-ev.class[26,2] <- "OTHER"     # class label. Hard-designated. DO NOT ALTER.
-ev.class[26,3] <- "OTHER"     # OTHER class. DO NOT ALTER.
+ev.class[26,2] <- "OTHERS"    # class label. Hard-designated. DO NOT ALTER.
+ev.class[26,3] <- "OTHERS"    # OTHER class. DO NOT ALTER.
 
+P <- which(!is.na(ev.class[1:23,1]))
+N <- length(P)
 
 # 0. EXCLUDED - weather events to exclude
 evclass.rowid <- grep(ev.class[24,3], StormData$EVTYPE)
@@ -277,16 +306,14 @@ evclass <- cbind(evclass.rowid, evclass.evtyp)
 StormData <- StormData %>% 
         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[24,1]))
 
-for (i in 1:23) {
-        if (!is.na(ev.class[i,1]) & !is.na(ev.class[i,3])) {
-                evclass.rowid <- grep(ev.class[i,3], StormData$EVTYPE)
-                evclass.rowid <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
-                evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
-                evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
-                evclass <- rbind(evclass, evclass.tmp)
-                StormData <- StormData %>%
-                  mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[i,1]))
-        }
+for (i in 1:N) {
+        evclass.rowid <- grep(ev.class[P[i],3], StormData$EVTYPE)
+        evclass.rowid <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
+        evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
+        evclass.tmp <- cbind(evclass.rowid, evclass.evtyp)
+        evclass <- rbind(evclass, evclass.tmp)
+        StormData <- StormData %>% 
+              mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[P[i],1]))
 }
 
 # 00. OTHER - weather events not classified by the regular class codes
@@ -298,37 +325,25 @@ evclass <- rbind(evclass, evclass.tmp)
 StormData <- StormData %>% 
         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[26,1]))
 
+# subset of StormData across the USA (exclude off-shore territories).
+stormsub <- StormData %>% 
+        select(EV_TIMESTAMP, EVCLASS, EVTYPE, LONGITUDE, LATITUDE, STATE, COUNTY,
+               FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP,
+               REFNUM) %>%
+        filter(STATE %in% mystates & !(EVCLASS %in% c("X","Z"))) %>% 
+        mutate(STATE = factor(STATE),
+               EVCLASS = factor(EVCLASS, labels = ev.class[P,2])) %>%
+        arrange(EV_TIMESTAMP)
+                # (!is.na(LONGITUDE) & !is.na(LATITUDE)) &
+                #        (LONGITUDE != 0 & LATITUDE != 0)) %>%
+
 rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 ```
 
 
-```{r data.analytic}
-par.def <- par(no.readonly = TRUE) # snapshot of default graphic parameters.
-
-# all states of the USA (exclude off-shore affiliated territories).
-states <- c(unique(state.fips$abb), "AK", "HI") 
-
-# set up colour palette.
-set.seed(2)
-i <- sample.int(502, 256)
-i <- sample(i, 66)
-pal <- colors(TRUE)[i]
-
-# assign ev.class.label to a character vector for simpler handling
-ev.clvl <- ev.class[order(ev.class[1:23,1]),1:2]
-N <- NROW(ev.clvl) - sum(is.na(ev.clvl[,1]))
-pal <- pal[seq(length(pal), by = -2, length.out = N)]
-
-# subset of StormData across the USA (exclude off-shore territories).
-stormsub <- StormData %>% 
-        select(EV_TIMESTAMP,EVCLASS,EVTYPE,LONGITUDE,LATITUDE,STATE,COUNTY,
-               FATALITIES,INJURIES,PROPDMG,PROPDMGEXP,CROPDMG,CROPDMGEXP) %>%
-        filter(STATE %in% states & !(EVCLASS %in% c("X","Z"))) %>% 
-        mutate(STATE = factor(STATE),
-               EVCLASS = factor(EVCLASS, labels = ev.clvl[1:N,2])) %>%
-        arrange(EV_TIMESTAMP)
-                # (!is.na(LONGITUDE) & !is.na(LATITUDE)) &
-                #        (LONGITUDE != 0 & LATITUDE != 0)) %>%
+<!-- weather events aggregate frequency overview barchart plot-->
+```{r data.analytic} 
+pal <- mypal[seq(length(mypal), by = -2, length.out = N)]
 
 # set up plotting layout and global graphics parameters 
 layout(matrix(c(1,2,
@@ -337,7 +352,7 @@ layout(matrix(c(1,2,
 
 par(las = 1, cex.axis = 0.65, ann = FALSE)
 
-# aggregate weather events by class across the USA.
+# weather events aggregate frequency by class across the USA.
 evcnt <- stormsub %>%
         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
         group_by(EVCLASS) %>%
@@ -346,38 +361,38 @@ evcnt <- stormsub %>%
 # plotting barchart for weather events aggregate by class across the USA.
 par(mai = c(0.50,1.15,0.50,0.15))
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
-mtext("Weather Events Frequency Aggregate by Class Across USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
+mtext("Weather Event Aggregate Frequency Across USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.00, adj = 1, cex = 0.65)
 maxtik <- max(axTicks(1))
 m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
-        v <- ifelse(evcnt$n[i] >= maxtik, -2.25, 0.25)
-        text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = v, cex = 0.70)
+        j <- ifelse(evcnt$n[i] >= maxtik, -2.25, 0.25)
+        text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = j, cex = 0.70)
 }
 
-# aggregate weather events manifested in casualty and economic loss by class across the USA.
+# aggregate frequency  of weather events manifested in casualty and economic loss by class across the USA.
 evcnt <- stormsub %>%
         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
         filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
         group_by(EVCLASS) %>%
         count(EVCLASS) 
 
-# plotting barchart for weather events manifested in casualty and economic loss aggregate by class across the USA.
+# plotting barchart for aggregate frequency of weather events manifested in casualty and economic loss by class across the USA.
 par(mai = c(0.50,0.15,0.50,1.15), yaxt = "n")
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
-mtext("Weather Events Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
-mtext("Frequency Aggregate by Class Across USA (1950 ~ 2011)", font = 2, side = 3, line = -2.00, adj = 1, cex = 0.70)
+mtext("Weather Event Aggregate Frequency Across USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
+mtext("Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -2.00, adj = 1, cex = 0.70)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.75, adj = 1, cex = 0.65)
 maxtik <- max(axTicks(1))
 m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
-        ifelse(evcnt$n[i] >= maxtik, v <- -2.25, v <- 0.25)
-        text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = v, cex = 0.70)
+        j <- ifelse(evcnt$n[i] >= maxtik, -2.25, 0.25)
+        text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = j, cex = 0.70)
 }
 
 par(cex.axis = 0.70, cex.lab = 0.80, ann = FALSE, yaxt = "s")
 
-# weather events aggregate of individual state.
+# weather events aggregate frequency of individual state.
 evcnt <- stormsub %>%
         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
         group_by(EVCLASS, STATE) %>%
@@ -389,9 +404,8 @@ barplot(n ~ EVCLASS + as.character(STATE), data = evcnt,
         horiz = FALSE, 
         border = NA,
         col = pal)
-title(ylab = "Events Frequency Aggregate by Class")
-mtext("Weather Events of Individual-State by Class", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
-mtext("(1950 ~ 2011)", side = 3, line = -2.00, adj = 0, padj = 0, cex = 0.65)
+title(ylab = "Aggregate Frequency by Event Type")
+mtext("Weather Events of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
 
 # aggregate weather events of individual state manifested in casualty and economic loss.
 evcnt <- stormsub %>%
@@ -406,13 +420,24 @@ barplot(n ~ EVCLASS + as.character(STATE), data = evcnt,
         horiz = FALSE, 
         border = NA,
         col = pal)
-title(ylab = "Events Frequency Aggregate by Class")
-mtext("Weather Events Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
-mtext("of Individual-State by Class (1950 ~ 2011)", font = 2, side = 3, line = -2.00, adj = 0, padj = 0, cex = 0.70)
+title(ylab = "Aggregate Frequency by Event Type")
+mtext("Weather Events of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
+mtext("Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -2.00, adj = 0, padj = 0, cex = 0.70)
 
 par(par.def)
-rm(i, v, maxtik, m, par.def, evcnt)
+rm(j, m, maxtik, par.def, evcnt)
 ```
+
+<!-- most hazardous weather events in terms of casualty and economic loss -->
+```{r data.analytic2}
+select(STATE, EVCLASS, EVTYPE, FATALITIES, INJURIES, PROPDMG, CROPDMG) %>%
+               
+
+
+
+```
+
+
 
 ```{r house.keeping}
 # detach("package:xts", unload = TRUE)
