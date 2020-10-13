@@ -6,6 +6,8 @@ output:
   html_document: 
     fig_caption: yes
     keep_md: yes
+    fig_width: 11
+    fig_height: 7
 ---
 ## SYNOPSIS
 
@@ -148,7 +150,6 @@ rm(fileurl,filetmp,filesrc,filels,filein)
 for (i in 1:length(filenam)) {
         print(paste(i, ":",filenam[i], "(",floor(object.size(get(filenam[i]))/10e+05),"MB)"))
 }
-rm(i)
 ```
 **`r length(filenam)`** *raw* data `r ifelse(length(filenam) > 1, "sets were", "set was")` loaded into R workspace from NOAA sourced data downloaded from the course website. (number in bracket depicts memory footprint).
 
@@ -318,7 +319,6 @@ ev.clvl <- ev.class[order(ev.class[1:23,1]),1:2]
 N <- NROW(ev.clvl) - sum(is.na(ev.clvl[,1]))
 pal <- pal[seq(length(pal), by = -2, length.out = N)]
 
-
 # subset of StormData across the USA (exclude off-shore territories).
 stormsub <- StormData %>% 
         select(EV_TIMESTAMP,EVCLASS,EVTYPE,LONGITUDE,LATITUDE,STATE,COUNTY,
@@ -330,52 +330,50 @@ stormsub <- StormData %>%
                 # (!is.na(LONGITUDE) & !is.na(LATITUDE)) &
                 #        (LONGITUDE != 0 & LATITUDE != 0)) %>%
 
-
 # set up plotting layout and global graphics parameters 
 layout(matrix(c(1,2,
                 3,3,
                 4,4), nrow = 3, byrow = TRUE))
+
 par(las = 1, cex.axis = 0.65, ann = FALSE)
 
-# aggregate weather events across the USA.
+# aggregate weather events by class across the USA.
 evcnt <- stormsub %>%
         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
         group_by(EVCLASS) %>%
         count(EVCLASS) 
 
-# plotting barchart for weather events aggregate across the USA.
+# plotting barchart for weather events aggregate by class across the USA.
 par(mai = c(0.50,1.15,0.50,0.15))
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
-
+mtext("Weather Events Frequency Aggregate by Class Across USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
+mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.00, adj = 1, cex = 0.65)
 maxtik <- max(axTicks(1))
 m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
         v <- ifelse(evcnt$n[i] >= maxtik, -2.25, 0.25)
         text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = v, cex = 0.70)
 }
-mtext("Aggregate Frequency of Weather Events in USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
-mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.00, adj = 1, cex = 0.65)
 
-# aggregate weather events manifested in casualty and economic loss across the USA.
+# aggregate weather events manifested in casualty and economic loss by class across the USA.
 evcnt <- stormsub %>%
         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
         filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
         group_by(EVCLASS) %>%
         count(EVCLASS) 
 
-# plotting barchart for weather events aggregated across the USA that manifested in fatalities/injuries and properties/crops damages across the USA.
+# plotting barchart for weather events manifested in casualty and economic loss aggregate by class across the USA.
 par(mai = c(0.50,0.15,0.50,1.15), yaxt = "n")
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
-
+mtext("Weather Events Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
+mtext("Frequency Aggregate by Class Across USA (1950 ~ 2011)", font = 2, side = 3, line = -2.00, adj = 1, cex = 0.70)
+mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.75, adj = 1, cex = 0.65)
 maxtik <- max(axTicks(1))
 m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
         ifelse(evcnt$n[i] >= maxtik, v <- -2.25, v <- 0.25)
         text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = v, cex = 0.70)
 }
-mtext("Aggregate Frequency of Weather Events in USA (1950 ~ 2011)", font = 2, side = 3, line = -1.25, adj = 1, cex = 0.70)
-mtext("Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -2.00, adj = 1, cex = 0.70)
-mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.75, adj = 1, cex = 0.65)
 
 par(cex.axis = 0.70, cex.lab = 0.80, ann = FALSE, yaxt = "s")
 
@@ -385,14 +383,14 @@ evcnt <- stormsub %>%
         group_by(EVCLASS, STATE) %>%
         count(EVCLASS, STATE) 
 
-# plotting barchart for the occurrence of weather-events of each state.
+# plotting barchart for the occurrence of weather-events of individual state.
 par(mai = c(0.25, 1.15, 0.25, 1.15))
 barplot(n ~ EVCLASS + as.character(STATE), data = evcnt, 
         horiz = FALSE, 
         border = NA,
         col = pal)
-title(ylab = "Aggregate Frequency by Events")
-mtext("Weather Events of Individual-State", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
+title(ylab = "Events Frequency Aggregate by Class")
+mtext("Weather Events of Individual-State by Class", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
 mtext("(1950 ~ 2011)", side = 3, line = -2.00, adj = 0, padj = 0, cex = 0.65)
 
 # aggregate weather events of individual state manifested in casualty and economic loss.
@@ -408,13 +406,11 @@ barplot(n ~ EVCLASS + as.character(STATE), data = evcnt,
         horiz = FALSE, 
         border = NA,
         col = pal)
-title(ylab = "Aggregate Frequency by Events")
-mtext("Weather Events of Individual-State", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
-mtext("Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -2.00, adj = 0, padj = 0, cex = 0.70)
-mtext("(1950 ~ 2011)", side = 3, line = -2.75, adj = 0, padj = 0, cex = 0.65)
+title(ylab = "Events Frequency Aggregate by Class")
+mtext("Weather Events Manifested in Casualty & Economic Loss", font = 2, side = 3, line = -1.25, adj = 0, padj = 0, cex = 0.70)
+mtext("of Individual-State by Class (1950 ~ 2011)", font = 2, side = 3, line = -2.00, adj = 0, padj = 0, cex = 0.70)
 
 par(par.def)
-
 rm(i, v, maxtik, m, par.def, evcnt)
 ```
 
