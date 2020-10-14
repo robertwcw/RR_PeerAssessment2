@@ -6,8 +6,8 @@ output:
   html_document: 
     fig_caption: yes
     keep_md: yes
-    fig_width: 13
-    fig_height: 9
+    fig_width: 12
+    fig_height: 8
 ---
 ## SYNOPSIS
 
@@ -15,7 +15,7 @@ Natural disaster triggered by storms and abnormal weather phenomenons may lead t
 &nbsp;
 
 #### Set up R workspace environment
-```{r setup, message=TRUE, echo=FALSE, results="hide"}
+```{r setup, message=TRUE, echo=TRUE, results="hide"}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
@@ -28,18 +28,16 @@ source(getRflib("strCap.R"),local = TRUE)
 if (!requireNamespace("data.table", quietly = TRUE)) {
         install.packages("data.table")
 }
-# library(data.table)
-# if (!requireNamespace("dtplyr", quietly = TRUE)) {
-#         install.packages("dtplyr")
-# }
-# library(dtplyr)
+library(data.table)
 if (!requireNamespace("dplyr", quietly = TRUE)) {
         install.packages("dplyr")
 }
 library(dplyr, warn.conflicts = FALSE)
 library(maps)
 # library(xts)
+```
 
+```{R init.udf.cvar}
 # 'udf.num2gcs' user-defined function to convert LATITUDE & LONGITUDE coordinate values in integer type to nnn.dddd geographic coordinate system format 
 udf.num2gcs <- function(X, y) { # y is number of significant digits.
         if (!is.na(X) & !is.null(X) & is.numeric(X)) {
@@ -119,7 +117,7 @@ par.def <- par(no.readonly = TRUE)
 
 Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
 
-```{r data.load, cache=TRUE, echo=TRUE, results="hide"}
+```{r data.load, cache=FALSE, echo=TRUE, results="hide"}
 # loading data downloaded from course website into R workspace 
 
 # set data source url to course website
@@ -347,11 +345,11 @@ rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 pal <- mypal[seq(length(mypal), by = -2, length.out = N)]
 
 # set up plotting layout and global graphics parameters 
-layout(matrix(c(1,2,
-                3,3,
-                4,4), nrow = 3, byrow = TRUE))
-
 par(las = 1, cex.axis = 0.80, cex.lab = 0.80, ann = FALSE)
+nf <- layout(matrix(c(1,2,
+                      3,3,
+                      4,4), nrow = 3, byrow = TRUE))
+
 
 # weather events aggregate frequency by class across the USA.
 evcnt <- stormsub %>%
@@ -360,7 +358,7 @@ evcnt <- stormsub %>%
         count(EVCLASS) 
 
 # plotting barchart for weather events aggregate by class across the USA.
-par(mai = c(0.50,1.15,0.50,0.15))
+par(mai = c(0.50,1.15,0.25,0.15))
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
 mtext("Weather Event Frequency Aggregate Across USA (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 1, cex = 0.70)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -0.75, adj = 1, cex = 0.65)
@@ -379,7 +377,7 @@ evcnt <- stormsub %>%
         count(EVCLASS) 
 
 # plotting barchart for aggregate frequency of weather events manifested in casualty and economic loss by class across the USA.
-par(mai = c(0.50,0.15,0.50,1.15), yaxt = "n")
+par(mai = c(0.50,0.15,0.25,1.15), yaxt = "n")
 barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
 mtext("Weather Event Frequency Aggregate Across USA (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 1, cex = 0.70)
 mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 1, cex = 0.70)
@@ -391,7 +389,7 @@ for (i in 1:length(m)) {
         text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = j, cex = 0.70)
 }
 
-par(cex.axis = 0.75, cex.lab = 0.80, ann = FALSE, yaxt = "s")
+par(cex.axis = 0.70, cex.lab = 0.80, ann = FALSE, yaxt = "s")
 
 # weather events aggregate frequency of individual state.
 evcnt <- stormsub %>%
@@ -424,17 +422,12 @@ barplot(n ~ EVCLASS + as.character(STATE), data = evcnt,
 title(ylab = "Event Frequency by Type", cex.lab = 1.00)
 mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.70)
 mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.70)
-
-par(par.def)
-rm(j, m, maxtik, par.def, evcnt)
 ```
 
 <!-- most hazardous weather events in terms of casualty and economic loss -->
 ```{r data.analytic2}
 # casualty & property/crop loss breakdown by weather event of individual-state 
-
 evcnt <- stormsub %>% 
-        
         select(STATE, EVCLASS, EVTYPE, FATALITIES, INJURIES, 
                PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP) %>%
         group_by(STATE, EVCLASS) %>%
@@ -443,36 +436,23 @@ evcnt <- stormsub %>%
                   PROPDMGS = sum(mapply(udf.expont, PROPDMGEXP, PROPDMG)),
                   CROPDMGS = sum(mapply(udf.expont, CROPDMGEXP, CROPDMG)))
 
-layout(matrix(c(1,2), nrow = 2))
-par(cex.axis = 0.65, cex.lab = 70, ann = FALSE)
+par(par.def)
+par(cex.axis = 0.50, ann = FALSE)
+nf <- layout(matrix(c(1,2), nrow = 2, byrow = TRUE))
 
-par(mai = c(0.50, 1.15, 0.50, 1.15))
+par(mai = c(0.50, 1.15, 0.25, 1.00))
 barplot((FATALCNT + INJURCNT) ~ EVCLASS + as.character(STATE), data = evcnt, 
-        horiz = FALSE, 
         border = NA,
-        col = pal,
-        beside = FALSE)
-title(ylab = "Casualty Count")
+        col = pal)
+title(ylab = "Casualty Count", cex.lab = 0.70)
 mtext("Casualty by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.25, adj = 0, padj = 0, cex = 0.75)
 
-par(mai = c(0.50, 1.15, 0.50, 1.15))
+par(mai = c(0.50, 1.15, 0.25, 1.00))
 barplot((PROPDMGS + CROPDMGS) ~ EVCLASS + STATE, data = evcnt, 
-        horiz = FALSE, 
         border = NA,
-        col = pal,
-        beside = FALSE)
-title(ylab = "Property/Crop Loss US$")
+        col = pal)
+title(ylab = "Property/Crop Loss US$", cex.lab = 0.70)
 mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.25, adj = 1, padj = 0, cex = 0.75)
 
-par(par.def)
-
-
 ```
 
-
-
-```{r house.keeping}
-# detach("package:xts", unload = TRUE)
-detach("package:dplyr", unload = TRUE)
-detach("package:data.table", unload = TRUE)
-```
