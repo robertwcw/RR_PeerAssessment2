@@ -341,12 +341,12 @@ rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 
 
 <!-- weather events frequency aggregate overview barchart plot-->
-```{r data.analytic} 
+```{r data.analytic, cache=TRUE} 
 pal <- mypal[seq(length(mypal), by = -2, length.out = N)]
 
 # set up plotting layout and global graphics parameters 
 par(par.def)
-par(las = 1, cex.axis = 0.80, cex.lab = 0.80, ann = FALSE)
+par(las = 1, cex.axis = 0.80, cex.lab = 0.85, ann = FALSE)
 nf <- layout(matrix(c(1,2,
                       3,3,
                       4,4), nrow = 3, byrow = TRUE))
@@ -402,7 +402,7 @@ evcnt3 <- stormsub %>%
                   ECONLOSS = (PROPDMGS + CROPDMGS) / 1e+09,
                   CASULTIE = (FATALCNT + INJURCNT) / 1e+03)
 
-par(mai = c(0.25, 1.10, 0.25, 1.10), las = 1, cex.axis = 0.75, ann = FALSE, yaxt = "s")
+par(mai = c(0.25, 1.10, 0.25, 1.10), cex.axis = 0.75, ann = FALSE, yaxt = "s")
 
 barplot(CASULTIE ~ EVCLASS + as.character(STATE), data = evcnt3,
         border = NA,
