@@ -6,15 +6,15 @@ output:
   html_document: 
     fig_caption: yes
     keep_md: yes
-    fig_width: 12
-    fig_height: 8
+    fig_width: 13
+    fig_height: 9
 ---
 ## SYNOPSIS
 
 Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns **WHERE** the events took place and **WHEN** the disasters struck by **WHAT** types of events give rise to deleterious social impact aftermath with respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of relevant metrics of the number of human injuries/fatalities, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
 &nbsp;
 
-#### Set up R workspace environment
+#### Initialize R workspace for current session.
 ```{r setup, results="hide"}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
@@ -35,9 +35,7 @@ if (!requireNamespace("dplyr", quietly = TRUE)) {
 library(dplyr, warn.conflicts = FALSE)
 library(maps)
 # library(xts)
-```
 
-```{R init.udf.cvar, results="hide", tidy=TRUE}
 # 'udf.num2gcs' user-defined function to convert LATITUDE & LONGITUDE coordinate values in integer type to nnn.dddd geographic coordinate system format 
 udf.num2gcs <- function(X, y) { # y is number of significant digits.
         if (!is.na(X) & !is.null(X) & is.numeric(X)) {
@@ -72,7 +70,7 @@ udf.prependsign <- function(x) {
 # 'udf.str2time' user-defined function to put TIME string into proper format
 udf.str2time <- function(x) {
         l <- nchar(x)
-        if (i %in% c(3,4)) {
+        if (l %in% c(3,4)) {
                 z <- substr(strptime(sprintf("%04s", x), "%H%M"), 12, 19)
                 ifelse(is.na(z) | z == "",
                        x <- "00:00:00",
@@ -115,7 +113,7 @@ par.def <- par(no.readonly = TRUE)
 
 #### Data Loading
 
-Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
+Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from the source file programmatically.
 
 ```{r data.load, cache=TRUE, tidy=TRUE}
 # loading data downloaded from course website into R workspace 
@@ -134,15 +132,17 @@ if (!dir.exists(datadir)) {
 
 # extract source data file name as name of work data object in workspace 
 filels <- strsplit(basename(fileurl), "%2F", fixed = TRUE)[[1]]
-for (i in 1:length(filels)) {
+for (i in 1:length(filels)) 
+        {
         filein <- strsplit(filels[i], ".", fixed = TRUE)[[1]]
-        if (length(filein) > 1) {
+        if (length(filein) > 1) 
+                {
                 filenam[i] <- filein[1]
                 filesrc <- bzfile(filetmp, open = "r")
                 assign(filenam[i], data.table(read.csv(filesrc)))
                 flush(filesrc)
+                }
         }
-}
 close(filesrc)
 
 filenam <- filenam[which(!is.na(filenam))]
@@ -183,47 +183,45 @@ Structure of data object **`r filenam[1]`**.
 ```{r eda.1}
 str(get(filenam[1]))
 ```
-**`r length(names(get(filenam[1])))`** columns found in the *raw* data set **`r filenam[1]`**. 
-
-<!-- For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[1]`**. (see attached list) -->
+There are **`r length(names(get(filenam[1])))`** columns found in the *raw* data set **`r filenam[1]`**. 
 
 ```{r data.proc, cache=TRUE, tidy=TRUE}
-# column number of the selected variable
-v <- c(1,2,3,4,5,6,7,8,12,13,19,20,21,22,23,24,25,26,27,28,32,33,34,35,37)
-names(get(filenam[1]))[v]
-
+#    user  system elapsed 
+# 182.282 105.120 287.894
 d1 <- sub(" .*", "", StormData$BGN_DATE)
 d2 <- gsub("[oO]", "0", StormData$BGN_TIME) # rectify typo error of 'O' for '0'
 d2 <- sub("12:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
 d2 <- sub("00:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
 d2 <- unlist(lapply(d2, udf.str2time)) # unify various time format to "hh:mm:ss"
-
 StormData <- StormData %>% mutate(EV_TIMESTAMP = as.POSIXct(strptime(paste(d1,d2), "%m/%d/%Y %H:%M:%S")))
 
-rm(d1,d2)
+rm(d1, d2)
 
 # # # NOT USED
 # # prepend -ve sign to LONGITUDE values belong to the western hemisphere
 #   StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.prependsign)
 
+#   user  system elapsed 
+# 36.600   0.271  36.910
 # reformat LATITUDE vector to geographic coordinate system format nnn.ddd
   numsign <- sign(StormData$LATITUDE)
   lat <- sapply(StormData$LATITUDE, udf.stripsign)
   lat <- sapply(lat, udf.num2gcs, 2) # param '2' is number of significant digits
   StormData$LATITUDE <- lat * (numsign * numsign) # LATs belong to northern hemisphere 
 
-#    user  system elapsed 
-# 39.976   0.271  40.281 
+#   user  system elapsed 
+# 36.108   0.214  36.344   
 # reformat LONGITUDE vector to geographic coordinate system format nnn.ddd
   numsign <- sign(StormData$LONGITUDE)
   lon <- sapply(StormData$LONGITUDE, udf.stripsign)
   lon <- sapply(lon, udf.num2gcs, 3) # param '3' is number of significant digits
   StormData$LONGITUDE <- lon * (numsign * -numsign) # LONs belong to western hemisphere
-
+  
 rm(lon, lat, numsign)  
 
 # trim whitespaces on both ends of EVTYPE and transform to uppercase
 StormData$EVTYPE <- toupper(trimws(StormData$EVTYPE))
+
 # trim redundant intermediate whitespaces of length(n) to length(1)
 repeat {
         StormData$EVTYPE <- sub("  ", " ", StormData$EVTYPE, useBytes = TRUE)
@@ -361,7 +359,7 @@ evcnt1 <- stormsub %>%
 par(mai = c(0.25,1.10,0.25,0.10))
 barplot(evcnt1$EVCNT, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt1$EVCLASS))
 mtext("Weather Event Frequency Aggregate Across USA (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 1, cex = 0.75)
-mtext("(US Affiliated Territories Not Included)", side = 3, line = -0.75, adj = 1, cex = 0.65)
+mtext("(US Affiliated Territories Not Included)", side = 3, line = -1.00, adj = 1, cex = 0.65)
 maxtik <- max(axTicks(1))
 m <- barplot(evcnt1$EVCNT, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
@@ -380,8 +378,8 @@ evcnt2 <- stormsub %>%
 par(mai = c(0.25,0.10,0.25,1.10), yaxt = "n")
 barplot(evcnt2$EVCNT, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt2$EVCLASS))
 mtext("Weather Event Frequency Aggregate Across USA (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 1, cex = 0.75)
-mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 1, cex = 0.75)
-mtext("(US Affiliated Territories Not Included)", side = 3, line = -1.75, adj = 1, cex = 0.65)
+mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -1.00, adj = 1, cex = 0.75)
+mtext("(US Affiliated Territories Not Included)", side = 3, line = -2.25, adj = 1, cex = 0.65)
 maxtik <- max(axTicks(1))
 m <- barplot(evcnt2$EVCNT, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
@@ -408,13 +406,13 @@ barplot(CASULTIE ~ EVCLASS + as.character(STATE), data = evcnt3,
         border = NA,
         col = pal)
 title(ylab = "Casualty Count ( '000 )", cex.lab = 0.90)
-mtext("Casualty by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.80)
+mtext("Casualty by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.75)
 
 barplot(ECONLOSS ~ EVCLASS + STATE, data = evcnt3,
         border = NA,
         col = pal)
 title(ylab = "Property/Crop Loss ( $Bn )", cex.lab = 0.90)
-mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 1, padj = 0, cex = 0.80)
+mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 1, padj = 0, cex = 0.75)
 ```
 
 ```{r data.analytic2.notused}
