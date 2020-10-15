@@ -15,7 +15,7 @@ Natural disaster triggered by storms and abnormal weather phenomenons may lead t
 &nbsp;
 
 #### Set up R workspace environment
-```{r setup, message=TRUE, echo=TRUE, results="hide"}
+```{r setup, results="hide"}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
@@ -37,7 +37,7 @@ library(maps)
 # library(xts)
 ```
 
-```{R init.udf.cvar}
+```{R init.udf.cvar, results="hide", tidy=TRUE}
 # 'udf.num2gcs' user-defined function to convert LATITUDE & LONGITUDE coordinate values in integer type to nnn.dddd geographic coordinate system format 
 udf.num2gcs <- function(X, y) { # y is number of significant digits.
         if (!is.na(X) & !is.null(X) & is.numeric(X)) {
@@ -117,7 +117,7 @@ par.def <- par(no.readonly = TRUE)
 
 Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from website data source programmatically, by-passing manual data staging as much as possible during loading phase.
 
-```{r data.load, cache=FALSE, echo=TRUE, results="hide"}
+```{r data.load, cache=TRUE, tidy=TRUE}
 # loading data downloaded from course website into R workspace 
 
 # set data source url to course website
@@ -187,7 +187,7 @@ str(get(filenam[1]))
 
 <!-- For this data analysis work, we shall create a working data set called **stormdata** consisting 18 data columns grabbed from the *raw* data set **`r filenam[1]`**. (see attached list) -->
 
-```{r data.proc, cache=FALSE, echo=TRUE, results="hide"}
+```{r data.proc, cache=TRUE, tidy=TRUE}
 # column number of the selected variable
 v <- c(1,2,3,4,5,6,7,8,12,13,19,20,21,22,23,24,25,26,27,28,32,33,34,35,37)
 names(get(filenam[1]))[v]
@@ -448,10 +448,10 @@ title(ylab = "Casualty Count", cex.lab = 0.70)
 mtext("Casualty by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.25, adj = 0, padj = 0, cex = 0.75)
 
 par(mai = c(0.50, 1.15, 0.25, 1.00))
-barplot((PROPDMGS + CROPDMGS) ~ EVCLASS + STATE, data = evcnt, 
+barplot(((PROPDMGS + CROPDMGS)/1e+9) ~ EVCLASS + STATE, data = evcnt, 
         border = NA,
         col = pal)
-title(ylab = "Property/Crop Loss US$", cex.lab = 0.70)
+title(ylab = "Property/Crop Loss ($Bn)", cex.lab = 0.70)
 mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.25, adj = 1, padj = 0, cex = 0.75)
 
 ```
