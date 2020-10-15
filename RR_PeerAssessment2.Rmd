@@ -340,7 +340,7 @@ rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 ```
 
 
-<!-- weather events aggregate frequency overview barchart plot-->
+<!-- weather events frequency aggregate overview barchart plot-->
 ```{r data.analytic} 
 pal <- mypal[seq(length(mypal), by = -2, length.out = N)]
 
@@ -350,109 +350,108 @@ nf <- layout(matrix(c(1,2,
                       3,3,
                       4,4), nrow = 3, byrow = TRUE))
 
-
 # weather events aggregate frequency by class across the USA.
 evcnt <- stormsub %>%
         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
         group_by(EVCLASS) %>%
-        count(EVCLASS) 
+        summarise(EVCNT = n())
 
-# plotting barchart for weather events aggregate by class across the USA.
+# plotting barchart for weather events aggregate by type across the USA.
 par(mai = c(0.50,1.15,0.25,0.15))
-barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
+barplot(evcnt$EVCNT, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
 mtext("Weather Event Frequency Aggregate Across USA (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 1, cex = 0.70)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -0.75, adj = 1, cex = 0.65)
 maxtik <- max(axTicks(1))
-m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
+m <- barplot(evcnt$EVCNT, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
-        j <- ifelse(evcnt$n[i] >= maxtik, -2.25, 0.25)
-        text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = j, cex = 0.70)
+        j <- ifelse(evcnt$EVCNT[i] >= maxtik, -2.25, 0.25)
+        text(evcnt$EVCNT[i], m[i], labels = formatC(evcnt$EVCNT[i], big.mark = ","), pos = 4,  offset = j, cex = 0.70)
 }
 
-# aggregate frequency  of weather events manifested in casualty and economic loss by class across the USA.
+# barchart plot for weather events manifested in casualty and property/crop loss by type across the USA.
 evcnt <- stormsub %>%
         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
         filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
         group_by(EVCLASS) %>%
-        count(EVCLASS) 
+        summarise(EVCNT = n())
 
-# plotting barchart for aggregate frequency of weather events manifested in casualty and economic loss by class across the USA.
+# plotting barchart for aggregate frequency of weather events manifested in casualty and property/crop loss by type across the USA.
 par(mai = c(0.50,0.15,0.25,1.15), yaxt = "n")
-barplot(evcnt$n, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
+barplot(evcnt$EVCNT, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt$EVCLASS))
 mtext("Weather Event Frequency Aggregate Across USA (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 1, cex = 0.70)
 mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 1, cex = 0.70)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -1.75, adj = 1, cex = 0.65)
 maxtik <- max(axTicks(1))
-m <- barplot(evcnt$n, horiz = TRUE, plot = FALSE)
+m <- barplot(evcnt$EVCNT, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
-        j <- ifelse(evcnt$n[i] >= maxtik, -2.25, 0.25)
-        text(evcnt$n[i], m[i], labels = formatC(evcnt$n[i], big.mark = ","), pos = 4,  offset = j, cex = 0.70)
+        j <- ifelse(evcnt$EVCNT[i] >= maxtik, -2.25, 0.25)
+        text(evcnt$EVCNT[i], m[i], labels = formatC(evcnt$EVCNT[i], big.mark = ","), pos = 4,  offset = j, cex = 0.70)
 }
 
-par(cex.axis = 0.70, cex.lab = 0.80, ann = FALSE, yaxt = "s")
-
-# weather events aggregate frequency of individual state.
+# most hazardous weather events in terms of casualty count and economic loss
+# casualty & property/crop loss breakdown by event type of individual-state
 evcnt <- stormsub %>%
-        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
-        group_by(EVCLASS, STATE) %>%
-        count(EVCLASS, STATE) 
-
-# plotting barchart for the occurrence of weather-events of individual state.
-par(mai = c(0.25, 1.15, 0.25, 1.15))
-barplot(n ~ EVCLASS + as.character(STATE), data = evcnt, 
-        horiz = FALSE, 
-        border = NA,
-        col = pal)
-title(ylab = "Event Frequency by Type", cex.lab = 1.00)
-mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.70)
-
-# aggregate weather events of individual state manifested in casualty and economic loss.
-evcnt <- stormsub %>%
-        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
-        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
-        group_by(EVCLASS, STATE) %>%
-        count(EVCLASS, STATE) 
-
-# plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for each state.
-par(mai = c(0.25, 1.15, 0.25, 1.15))
-barplot(n ~ EVCLASS + as.character(STATE), data = evcnt, 
-        horiz = FALSE, 
-        border = NA,
-        col = pal)
-title(ylab = "Event Frequency by Type", cex.lab = 1.00)
-mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.70)
-mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.70)
-```
-
-<!-- most hazardous weather events in terms of casualty and economic loss -->
-```{r data.analytic2}
-# casualty & property/crop loss breakdown by weather event of individual-state 
-evcnt <- stormsub %>% 
-        select(STATE, EVCLASS, EVTYPE, FATALITIES, INJURIES, 
+        select(STATE, EVCLASS, EVTYPE, FATALITIES, INJURIES,
                PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP) %>%
         group_by(STATE, EVCLASS) %>%
         summarise(FATALCNT = sum(FATALITIES),
                   INJURCNT = sum(INJURIES),
                   PROPDMGS = sum(mapply(udf.expont, PROPDMGEXP, PROPDMG)),
-                  CROPDMGS = sum(mapply(udf.expont, CROPDMGEXP, CROPDMG)))
+                  CROPDMGS = sum(mapply(udf.expont, CROPDMGEXP, CROPDMG)),
+                  ECONLOSS = ((PROPDMGS + CROPDMGS) / 1e+09),
+                  CASULTIE = ((FATALCNT + INJURCNT) / 1e+03))
 
-par(par.def)
-par(cex.axis = 0.50, ann = FALSE)
-nf <- layout(matrix(c(1,2), nrow = 2, byrow = TRUE))
-
-par(mai = c(0.50, 1.15, 0.25, 1.00))
-barplot((FATALCNT + INJURCNT) ~ EVCLASS + as.character(STATE), data = evcnt, 
+par(mai = c(0.50, 1.15, 0.25, 1.00), cex.axis = 0.50)
+barplot(CASULTIE ~ EVCLASS + as.character(STATE), data = evcnt,
         border = NA,
         col = pal)
-title(ylab = "Casualty Count", cex.lab = 0.70)
+title(ylab = "Casualty Count ('000)", cex.lab = 0.70)
 mtext("Casualty by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.25, adj = 0, padj = 0, cex = 0.75)
 
-par(mai = c(0.50, 1.15, 0.25, 1.00))
-barplot(((PROPDMGS + CROPDMGS)/1e+9) ~ EVCLASS + STATE, data = evcnt, 
+# par(mai = c(0.50, 1.15, 0.25, 1.00))
+barplot(ECONLOSS ~ EVCLASS + STATE, data = evcnt,
         border = NA,
         col = pal)
 title(ylab = "Property/Crop Loss ($Bn)", cex.lab = 0.70)
 mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.25, adj = 1, padj = 0, cex = 0.75)
-
 ```
+
+```{r data.analytic2.notused}
+par(par.def)
+par(las = 1, cex.axis = 0.50, cex.lab = 0.80, ann = FALSE)
+nf <- layout(matrix(c(1,2), nrow = 2, byrow = TRUE))
+
+# weather events aggregate frequency of individual state.
+evcnt <- stormsub %>%
+        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
+        group_by(STATE, EVCLASS) %>%
+        summarise(EVCNT = n()/1e+03)
+
+# plotting barchart for the occurrence of weather-events of individual state.
+par(mai = c(0.55, 1.10, 0.55, 1.10))
+barplot(EVCNT ~ EVCLASS + as.character(STATE), data = evcnt, 
+        horiz = FALSE, 
+        border = NA,
+        col = pal)
+title(ylab = "Event Frequency by Type ('000)")
+mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.80)
+
+# aggregate weather events of individual state manifested in casualty and economic loss.
+evcnt <- stormsub %>%
+        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
+        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
+        group_by(STATE, EVCLASS) %>%
+        summarise(EVCNT = n()/1e+03)
+
+# plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for each state.
+par(mai = c(0.55, 1.10, 0.55, 1.10))
+barplot(EVCNT ~ EVCLASS + as.character(STATE), data = evcnt, 
+        horiz = FALSE, 
+        border = NA,
+        col = pal)
+title(ylab = "Event Frequency by Type ('000)")
+mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.80)
+mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.80)
+```
+
 
