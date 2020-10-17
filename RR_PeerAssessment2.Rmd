@@ -19,11 +19,11 @@ Natural disaster triggered by storms and abnormal weather phenomenons may lead t
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
-.Rfliburl <- "https://raw.githubusercontent.com/robertwcw/Rflib/master"
-source(file.path(.Rfliburl,"getRflib.R"),local = TRUE)
-source(getRflib("is.defined.R"),local = TRUE)
-source(getRflib("myplclust.R"),local = TRUE)
-source(getRflib("strCap.R"),local = TRUE)
+# .Rfliburl <- "https://raw.githubusercontent.com/robertwcw/Rflib/master"
+# source(file.path(.Rfliburl,"getRflib.R"),local = TRUE)
+# source(getRflib("is.defined.R"),local = TRUE)
+# source(getRflib("myplclust.R"),local = TRUE)
+# source(getRflib("strCap.R"),local = TRUE)
 
 if (!requireNamespace("data.table",quietly = TRUE)) install.packages("data.table")
 library(data.table)
