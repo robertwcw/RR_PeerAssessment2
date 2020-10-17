@@ -111,6 +111,7 @@ mypal <- colors(TRUE)[i]
 
 # snapshot of default graphic parameters.
 par.def <- par(no.readonly = TRUE) 
+
 ```
 &nbsp;
 
@@ -154,6 +155,7 @@ filenam <- filenam[which(!is.na(filenam))]
 
 unlink(filetmp)
 rm(fileurl,filetmp,filesrc,filels,filein)
+
 ```
 &nbsp;
 
@@ -163,12 +165,14 @@ rm(fileurl,filetmp,filesrc,filels,filein)
 for (i in 1:length(filenam)) {
         print(paste(i, ":",filenam[i], "(",floor(object.size(get(filenam[i]))/10e+05),"MB)"))
 }
+
 ```
 **`r length(filenam)`** *raw* data `r ifelse(length(filenam) > 1, "sets were", "set was")` loaded into R workspace from NOAA sourced data downloaded from the course website. (number in bracket depicts memory footprint).
 
 Structure of data object **`r filenam[1]`**.
 ```{r eda.1}
 str(get(filenam[1]))
+
 ```
 There are **`r length(names(get(filenam[1])))`** columns found in the *raw* data set **`r filenam[1]`**. 
 
@@ -325,6 +329,7 @@ stormsub <- StormData %>%
                 #        (LONGITUDE != 0 & LATITUDE != 0)) %>%
 
 rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
+
 ```
 
 
@@ -359,7 +364,8 @@ for (i in 1:length(m)) {
 
 # barchart plot for weather events manifested in casualty and property/crop loss by type across the USA.
 evcnt2 <- stormsub %>%
-        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG,EV_TIMESTAMP) %>%
+        select(EV_TIMESTAMP, STATE, EVCLASS, EVTYPE, 
+               FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
         filter(FATALITIES > 0 | INJURIES > 0 | PROPDMGS > 0 | CROPDMGS > 0) %>%
         group_by(EVCLASS) %>%
         summarise(EVCNT = n())
@@ -398,6 +404,7 @@ barplot(ECONLOSS ~ EVCLASS + STATE, data = evcnt3,
         col = pal)
 title(ylab = "Property/Crop Loss ( $Bn )", cex.lab = 0.90)
 mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 1, padj = 0, cex = 0.75)
+
 ```
 
 ```{r data.analytic2, cache=TRUE}
