@@ -352,9 +352,12 @@ evcnt1 <- stormsub %>%
 
 # plotting barchart for weather events aggregate by type across the USA.
 par(mai = c(0.25,1.10,0.25,0.10))
+
 barplot(evcnt1$EVCNT, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt1$EVCLASS))
+
 mtext("Weather Event Frequency Aggregate Across USA (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 1, cex = 0.75)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -0.75, adj = 1, cex = 0.65)
+
 maxtik <- max(axTicks(1))
 m <- barplot(evcnt1$EVCNT, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
@@ -372,10 +375,13 @@ evcnt2 <- stormsub %>%
 
 # plotting barchart for aggregate frequency of weather events manifested in casualty and property/crop loss by type across the USA.
 par(mai = c(0.25,0.10,0.25,1.10), yaxt = "n")
+
 barplot(evcnt2$EVCNT, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt2$EVCLASS))
+
 mtext("Weather Event Frequency Aggregate Across USA (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 1, cex = 0.75)
 mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 1, cex = 0.75)
 mtext("(US Affiliated Territories Not Included)", side = 3, line = -1.75, adj = 1, cex = 0.65)
+
 maxtik <- max(axTicks(1))
 m <- barplot(evcnt2$EVCNT, horiz = TRUE, plot = FALSE)
 for (i in 1:length(m)) {
@@ -389,19 +395,21 @@ evcnt3 <- stormsub %>%
         select(STATE, EVCLASS, EVTYPE, FATALITIES,INJURIES, PROPDMGS,CROPDMGS) %>%
         group_by(STATE, EVCLASS) %>%
         summarise(ECONLOSS = (sum(PROPDMGS) + sum(CROPDMGS)) / 1e+09,
-                  CASULTIE = (sum(FATALITIES) + sum(INJURIES)) / 1e+03)
+                  CASUALTI = (sum(FATALITIES) + sum(INJURIES)) / 1e+03)
 
 par(mai = c(0.25, 1.10, 0.25, 1.10), cex.axis = 0.75, ann = FALSE, yaxt = "s")
 
-barplot(CASULTIE ~ EVCLASS + STATE, data = evcnt3,
+barplot(CASUALTI ~ EVCLASS + STATE, data = evcnt3,
         border = NA,
         col = pal)
+
 title(ylab = "Casualty Count ( '000 )", cex.lab = 0.90)
 mtext("Casualty by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.75)
 
 barplot(ECONLOSS ~ EVCLASS + STATE, data = evcnt3,
         border = NA,
         col = pal)
+
 title(ylab = "Property/Crop Loss ( $Bn )", cex.lab = 0.90)
 mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 1, padj = 0, cex = 0.75)
 
@@ -417,8 +425,8 @@ evcnt4 <- stormsub %>%
                   ECONLOSS = mean(PROPDMGS + CROPDMGS))
 
 xyp <- xyplot(EVCNT ~ YEARS | EVCLASS, data = evcnt4,
-              layout = c(2,4),
               groups = EVCLASS,
+              layout = c(2,4),
               pch = 19,
               col = pal,
               strip = FALSE,
@@ -431,10 +439,19 @@ xyp <- xyplot(EVCNT ~ YEARS | EVCLASS, data = evcnt4,
 xyp <- update(xyp, panel = function(x, y, ...) {
         panel.xyplot(x, y, ...)
         panel.lmline(x, y, col = rgb(0,0,1, alpha = 0.5), lwd = 2)
-
+        panel.abline(h = mean(y), col = rgb(1,0,0, alpha = 0.5), lwd = 2, lty = 2)
         })
 
 print(xyp)
+
+```
+
+```{r data.analytic3}
+nf <- layout(matrix(c(1,1,2,
+                      1,1,3), nrow = 2, byrow = TRUE))
+layout.show(nf)
+
+
 
 ```
 
