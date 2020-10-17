@@ -22,12 +22,12 @@ Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 .Rfliburl <- "https://raw.githubusercontent.com/robertwcw/Rflib/master"
 source(file.path(.Rfliburl,"getRflib.R"),local = TRUE)
 source(getRflib("is.defined.R"),local = TRUE)
+source(getRflib("myplclust.R"),local = TRUE)
 source(getRflib("strCap.R"),local = TRUE)
-# source(getRflib("myplclust.R"),local = TRUE)
 
 if (!requireNamespace("data.table",quietly = TRUE)) install.packages("data.table")
 library(data.table)
-
+ 
 if (!requireNamespace("dplyr",quietly = TRUE)) install.packages("dplyr")
 library(dplyr, warn.conflicts = FALSE)
 
@@ -262,7 +262,7 @@ ev.class[3,2] <- "SNOW.ICE"
 ev.class[3,3] <- "SNOW|ICE|WINTER|BLIZZARD|FREEZ(E|ING)|SLEET|ICY"
 ev.class[4,1] <- "D"
 ev.class[4,2] <- "WIND.STORM"
-ev.class[4,3] <- "WIND|STORM|GUSTNA|HURRICAN|TYPHOON|TURBULENCE|BURST|DUST|TSTM"
+ev.class[4,3] <- "WIND|STORM|GUSTNA|HURRICAN|TYPHOON|TURBULENCE|BURST|DUST|TSTM|CLOUD|FUNNEL|WALL"
 ev.class[5,1] <- "E"
 ev.class[5,2] <- "RAIN.FLOOD"
 ev.class[5,3] <- "FLOOD|WET|RAIN|SHOWER|HEAVY|PRECIPITAT"
@@ -417,7 +417,7 @@ evcnt4 <- stormsub %>%
                   ECONLOSS = mean(PROPDMGS + CROPDMGS))
 
 xyp <- xyplot(EVCNT ~ YEARS | EVCLASS, data = evcnt4,
-              layout = c(2,5),
+              layout = c(2,4),
               groups = EVCLASS,
               pch = 19,
               col = pal,
