@@ -413,16 +413,21 @@ barplot(ECONLOSS ~ EVCLASS + STATE, data = evcnt3,
 title(ylab = "Property/Crop Loss ( $Bn )", cex.lab = 0.90)
 mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 1, padj = 0, cex = 0.75)
 
+par(par.def)
+
 ```
 
 ```{r data.analytic2, cache=TRUE}
 evcnt4 <- stormsub %>% 
-        select(EV_TIMESTAMP, EVCLASS, FATALITIES,INJURIES, PROPDMGS,CROPDMGS) %>%
+        select(EV_TIMESTAMP, EVCLASS, 
+               FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
         arrange(EV_TIMESTAMP) %>%
         group_by(YEARS = year(EV_TIMESTAMP), EVCLASS) %>%
         summarise(EVCNT = n(),
-                  CASUALTI = sum(FATALITIES + INJURIES),
-                  ECONLOSS = mean(PROPDMGS + CROPDMGS))
+                  CASUALTI.mean = mean(FATALITIES + INJURIES),
+                  ECONLOSS.mean = mean(PROPDMGS + CROPDMGS),
+                  CASUALTI.sum = sum(FATALITIES + INJURIES),
+                  ECONLOSS.sum = sum(PROPDMGS + CROPDMGS))
 
 xyp <- xyplot(EVCNT ~ YEARS | EVCLASS, data = evcnt4,
               groups = EVCLASS,
@@ -444,14 +449,77 @@ xyp <- update(xyp, panel = function(x, y, ...) {
 
 print(xyp)
 
+par(par.def)
+
 ```
 
 ```{r data.analytic3}
-nf <- layout(matrix(c(1,1,2,
-                      1,1,3), nrow = 2, byrow = TRUE))
-layout.show(nf)
+# library(scales)
 
+ev.klass <- c(1,4,5)
 
+w <- which(year(stormsub$EV_TIMESTAMP) %in% c(2000,2010) & 
+                   as.numeric(stormsub$EVCLASS) %in% ev.klass)
+
+par(mai = c(0.42, 0.42, 0.42, 0.42))
+nf <- layout(matrix(c(1,1,1,1,2,2,
+                      1,1,1,1,2,2,
+                      1,1,1,1,2,2,
+                      1,1,1,1,2,2,
+                      1,1,1,1,3,3,
+                      4,4,4,4,3,3,
+                      4,4,4,4,3,3), nrow = 7, byrow = TRUE))
+
+# Map of USA mainland
+lon <- c(-130.00, -66.00)
+lat <- c(25.00, 50.00)
+# mymap0 <- map("world", regions = ".*usa", xlim = lon ,ylim = lat, interior = TRUE, plot = FALSE)
+# plot(mymap0, type = "l", lwd = 0.5, cex.axis = 0.8, main = "USA mainland")
+mymap0 <- map("state", interior = TRUE, plot = FALSE)
+plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
+title(main = "USA mainland")
+# coordinates of weather events for USA mainland
+ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w & 
+                           ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) &
+                                    (LATITUDE > lat[1] & LATITUDE < lat[2])),
+                   c(LONGITUDE, LATITUDE))
+points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.6, 
+       col = alpha(pal[ev.klass], 0.3))
+
+# Map of Alaska
+lon <- c(-180.00, -129.00)
+lat <- c(50.33, 72.83)
+mymap0 <- map("world", regions = ".*usa", xlim = lon ,ylim = lat, plot = FALSE)
+plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
+title(main = "Alaska")
+# coordinates of events for Alaska
+ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w &
+                           ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) &
+                                    (LATITUDE > lat[1] & LATITUDE < lat[2])),
+                   c(LONGITUDE, LATITUDE)
+                   )
+points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 1.0, 
+       col = alpha(pal[ev.klass], 0.5))
+
+# Map of Hawaii
+lon <- c(-177.37, -153.48)
+lat <- c(17.92, 29.45)
+mymap0 <- map("world", regions = ".*usa", xlim = lon ,ylim = lat, plot = FALSE)
+plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
+title(main = "Hawaii")
+# coordinates of events 
+ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w &
+                           ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) &
+                                    (LATITUDE > lat[1] & LATITUDE < lat[2])),
+                   c(LONGITUDE, LATITUDE)
+                   )
+points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.8, 
+       col = alpha(pal[ev.klass], 0.5))
+
+plot(4, type = "n",axes = FALSE, ann = FALSE)
+legend("center", c(1,1), ev.class[ev.klass,2], fill = pal[ev.klass], border = pal[ev.klass], bty = "n", x.intersp = 1, y.intersp = 1.5)
+
+par(par.def)
 
 ```
 
@@ -479,7 +547,7 @@ mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", fo
 # aggregate weather events of individual state manifested in casualty and economic loss.
 evcnt0 <- stormsub %>%
         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
-        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMG > 0 | CROPDMG > 0) %>%
+        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMGS > 0 | CROPDMGS > 0) %>%
         group_by(STATE, EVCLASS) %>%
         summarise(EVCNT = n()/1e+03)
 
