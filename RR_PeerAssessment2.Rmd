@@ -485,9 +485,11 @@ ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w &
                            ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) &
                                     (LATITUDE > lat[1] & LATITUDE < lat[2])),
                    c(LONGITUDE, LATITUDE))
-points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.6, 
-       col = alpha(pal[ev.klass], 0.3))
-legend(x = -75, y = 27, ev.class[ev.klass,2], fill = pal[ev.klass], border = pal[ev.klass], bty = "n", x.intersp = 1/2, y.intersp = 1, cex = 0.8)
+points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.8, 
+       col = alpha(pal[ev.klass], 0.2))
+legend(x = -75, y = 25, ev.class[ev.klass,2], fill = pal[ev.klass], 
+       border = pal[ev.klass], bty = "n", x.intersp = 1/2, y.intersp = 1, 
+       xjust = 0, yjust = 0, text.font = 2, cex = 0.8)
 
 
 # Map of Alaska
@@ -510,7 +512,7 @@ points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 2.0,
 lon <- c(-177.37, -153.48)
 lat <- c(17.92, 29.45)
 mymap0 <- map("world", regions = ".*usa", xlim = lon ,ylim = lat, plot = FALSE)
-par(mai = c(0.25, 0.32, 0.25, 0.25))
+par(mai = c(0.27, 0.32, 0.25, 0.25))
 plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
 title(main = "Hawaii")
 # coordinates of events 
@@ -523,27 +525,17 @@ points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 1.2,
        col = alpha(pal[ev.klass], 0.5))
 
 
-par(mai = c(0.25, 0.82, 0.25, 0.25), ann = FALSE)
+par(mai = c(0.27, 0.62, 0.25, 0.25), ann = FALSE)
 
 plot(log(CASUALTI.sum) ~ YEARS, 
      data = subset(evcnt4, as.numeric(EVCLASS) %in% ev.klass),
      pch = 19, col = pal[ev.klass], cex = 0.8)
-title(ylab = "Number of Casualty (log scale)")
-# for (i in 1:length(ev.klass)) {
-#         abline(lm(CASUALTI.sum ~ YEARS,
-#                   data = subset(evcnt4, as.numeric(EVCLASS) == ev.klass[i])),
-#                   col = alpha(pal[i], 0.7), lwd = 2)
-# }
+title(main = "Number of Casualty", ylab = "(log scale)")
 
 plot(log(ECONLOSS.sum) ~ YEARS, 
      data = subset(evcnt4, as.numeric(EVCLASS) %in% ev.klass),
      pch = 19, col = pal[ev.klass], cex = 0.8)
-title(ylab = "Property/Crop Loss (log scale)")
-# for (i in 1:length(ev.klass)) {
-#         abline(lm(ECONLOSS.sum ~ YEARS,
-#                   data = subset(evcnt4, as.numeric(EVCLASS) == ev.klass[i])),
-#                   col = alpha(pal[i], 0.7), lwd = 2)
-# }
+title(main = "Property/Crop Loss", ylab = "(log scale)")
 
 par(par.def)
 
