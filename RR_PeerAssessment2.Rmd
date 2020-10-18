@@ -40,6 +40,9 @@ library(maps)
 if (!requireNamespace("lattice", quietly  = TRUE)) install.packages("lattice")
 library(lattice)
 
+if (!requireNamespace("scales", quietly  = TRUE)) install.packages("scales")
+library(scales)
+
 # 'udf.num2gcs' user-defined function to convert LATITUDE & LONGITUDE coordinate values in integer type to nnn.dddd geographic coordinate system format 
 udf.num2gcs <- function(X, y) { # y is number of significant digits.
         if (is.na(X) | is.null(X) | !is.numeric(X)) return(X)
@@ -454,21 +457,19 @@ par(par.def)
 ```
 
 ```{r data.analytic3}
-# library(scales)
 
-ev.klass <- c(1,4,5)
+ev.klass <- c(1,4,5) # TORNADO, WIND.STORM & FLOOD
 
 w <- which(year(stormsub$EV_TIMESTAMP) %in% c(2000,2010) & 
                    as.numeric(stormsub$EVCLASS) %in% ev.klass)
 
-par(mai = c(0.42, 0.42, 0.42, 0.42))
 nf <- layout(matrix(c(1,1,1,1,2,2,
                       1,1,1,1,2,2,
                       1,1,1,1,2,2,
                       1,1,1,1,2,2,
                       1,1,1,1,3,3,
-                      4,4,4,4,3,3,
-                      4,4,4,4,3,3), nrow = 7, byrow = TRUE))
+                      4,4,5,5,3,3,
+                      4,4,5,5,3,3), nrow = 7, byrow = TRUE))
 
 # Map of USA mainland
 lon <- c(-130.00, -66.00)
@@ -476,6 +477,7 @@ lat <- c(25.00, 50.00)
 # mymap0 <- map("world", regions = ".*usa", xlim = lon ,ylim = lat, interior = TRUE, plot = FALSE)
 # plot(mymap0, type = "l", lwd = 0.5, cex.axis = 0.8, main = "USA mainland")
 mymap0 <- map("state", interior = TRUE, plot = FALSE)
+par(mai = c(0.21, 0.32, 0.21, 0.32))
 plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
 title(main = "USA mainland")
 # coordinates of weather events for USA mainland
@@ -485,11 +487,14 @@ ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w &
                    c(LONGITUDE, LATITUDE))
 points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.6, 
        col = alpha(pal[ev.klass], 0.3))
+legend(x = -75, y = 27, ev.class[ev.klass,2], fill = pal[ev.klass], border = pal[ev.klass], bty = "n", x.intersp = 0.5, y.intersp = 1.2, cex = 0.8)
+
 
 # Map of Alaska
 lon <- c(-180.00, -129.00)
 lat <- c(50.33, 72.83)
 mymap0 <- map("world", regions = ".*usa", xlim = lon ,ylim = lat, plot = FALSE)
+par(mai = c(0.21, 0.32, 0.21, 0.32))
 plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
 title(main = "Alaska")
 # coordinates of events for Alaska
@@ -505,6 +510,7 @@ points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 1.0,
 lon <- c(-177.37, -153.48)
 lat <- c(17.92, 29.45)
 mymap0 <- map("world", regions = ".*usa", xlim = lon ,ylim = lat, plot = FALSE)
+par(mai = c(0.21, 0.32, 0.21, 0.32))
 plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
 title(main = "Hawaii")
 # coordinates of events 
@@ -516,8 +522,6 @@ ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w &
 points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.8, 
        col = alpha(pal[ev.klass], 0.5))
 
-plot(4, type = "n",axes = FALSE, ann = FALSE)
-legend("center", c(1,1), ev.class[ev.klass,2], fill = pal[ev.klass], border = pal[ev.klass], bty = "n", x.intersp = 1, y.intersp = 1.5)
 
 par(par.def)
 
@@ -546,7 +550,7 @@ mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", fo
 
 # aggregate weather events of individual state manifested in casualty and economic loss.
 evcnt0 <- stormsub %>%
-        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMG,CROPDMG) %>%
+        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMGS,CROPDMGS) %>%
         filter(FATALITIES > 0 | INJURIES > 0 | PROPDMGS > 0 | CROPDMGS > 0) %>%
         group_by(STATE, EVCLASS) %>%
         summarise(EVCNT = n()/1e+03)
