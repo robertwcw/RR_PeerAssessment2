@@ -6,10 +6,11 @@ output:
   html_document: 
     keep_md: yes
     toc_depth: 4
+    fig_caption: yes
 ---
 ## SYNOPSIS
 
-Natural disaster triggered by storm, tornado and a host of other weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns **WHERE** the events took place and **WHEN** the disasters struck by **WHAT** types of events gave rise to deleterious social impact aftermath with respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of relevant metrics of the number of human casualty, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
+Disaster triggered by storm, tornado and a host of other weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns **WHERE** the events took place and **WHAT** types of events gave rise to deleterious social impact aftermath with respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of relevant metrics of the number of human casualty, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
 
 Weather events occurred in the affiliated territories of the USA are not included in this analysis.  
 &nbsp;
@@ -174,23 +175,21 @@ for (i in 1:length(filenam)) {
 }
 ```
 
-**`r length(filenam[1])`** data `r ifelse(length(filenam) > 1, "sets were", "set was")` extracted and loaded into R workspace from NOAA sourced data downloaded from the course website. (number in bracket depicts memory footprint).
+**`r length(filenam[1])`** data `r ifelse(length(filenam) > 1, "sets were", "set was")` extracted and loaded into R workspace from NOAA sourced data downloaded from the course website. (number in bracket depicts memory footprint).  
 
-Structure of the **`r filenam[1]`** data set.
+Structure of **`r filenam[1]`** `r class(get(filenam[1]))[1]`.
 
 ```{r eda.1, tidy=TRUE}
 str(get(filenam[1]))
 ```
-&nbsp;
-<!-- There are **`r length(names(get(filenam[1])))`** columns found in the **`r filenam[1]`** data set.   -->
+
+Visual examination on the **`r filenam[1]`** `r class(get(filenam[1]))[1]` indicating there are a number of data vectors having incorrect atomic vector class, entail further processing and transformation to change their atomic class to the appropriate ones, which is compulsory to enable correct downstream analytic processing. As understood, the raw data set is quite a bit, *dirty*.  
 &nbsp;
 
-Preliminary visual examination on the `r filenam[1]` data set revealed there are a number of data columns in the `r class(get(filenam[1]))[1]` entail further processing and transformation that are compulsory to enable downstream analytic processing, as understood the **`r filenam[1]`** data set, is quite "dirty".  
-&nbsp;
 
 ## Data Processing
 
-For the purpose of this analysis work, which is to answer the pertinent questions about the weather events of WHERE, WHEN and WHAT; we will proceed to spawn a new data table object called **stormsub** with a subset of 11 variables from existing raw data set `r filenam[1]`, plus a few more derived variables base on existing vectors. The following is the subset of variables grabbed from the existing raw data set **`r filenam[1]**`:  
+For the purpose of this analysis work, which is to answer the pertinent questions about the weather events of *WHAT and WHERE*; we will proceed to spawn a new data.table object called **stormsub** from existing raw data set `r filenam[1]` with subset of 11 variables, plus a few more working-variables derived from existing raw data set. The following is the subset of variables grabbed from the existing raw data set **`r filenam[1]`**:  
 ```{r data.proc, tidy=TRUE}
 v <- c(5,7,8,23,24,25,26,27,28,32,33)
 va <- array(dim = c(length(v),2))
@@ -205,8 +204,8 @@ column 2: Data Type
 &nbsp;
 
 
-**EV_TIMESTAMP** *< derived-variable >*  
-Generate a time-stamp in POSIXct type, base on existing raw data BGN_DATE & BGN_TIME for each event as it was recorded in the raw data set. 
+**EV_TIMESTAMP**  *<working-variable>*  
+Generate a time-stamp in POSIXct format, computed base on existing raw data BGN_DATE & BGN_TIME for each event as it was recorded in the raw data set. 
 ```{r data.proc.1, tidy=TRUE}
 d1 <- sub(" .*", "", StormData$BGN_DATE)
 d2 <- gsub("[oO]", "0", StormData$BGN_TIME) # rectify typo error of 'O' for '0'
@@ -220,8 +219,8 @@ rm(d1, d2)
 ```
 &nbsp;
 
-**LATITUDE** & **LONGITUDE**  
-Geographic coordinates are used in mapping weather events onto the map of USA to visually tell user where were the events took place. **LATITUDE** and **LONGITUDE** data in their current form are not use-able by any mapping system, must go through a conversion process to transform them into geographic coordinate system configuration to be readily recognized by base R mapping tools.
+**LONGITUDE** & **LATITUDE**  
+The geographic coordinates (x,y) used in mapping weather events onto the map of USA to visually tell user where were the events took place. **LATITUDE** and **LONGITUDE** data in their current form are not immediately use-able by any mapping system, must go through a conversion process to transform them into geographic coordinate system configuration to be readily recognized by base R mapping tools or any other mapping systems.
 ```{r data.proc.2, tidy=TRUE}
 # Reformat LATITUDE vector to geographic coordinate system format nnn.ddd
 numsign <- sign(StormData$LATITUDE)
@@ -240,7 +239,7 @@ rm(lon, lat, numsign)
 &nbsp;
 
 **EVTYPE**  
-Data values captured in EVTYPE in its raw format is quite a bit "dirty" and present itself in human natural language construct than conforming to format useful for information processing using computers. To enable simpler data processing logic coding and avoid unnecessary error during analytic processing run, we trim un-needed white-spaces from within **EVTYPE** and then convert to upper case. Please refer to **EVCLASS** for further explanation.
+Data values captured in EVTYPE in their current raw format is quite a bit "dirty" and mostly present itself in human natural language construct than conforming to format useful for information processing using computers. To enable simpler data processing logic coding to avoid unnecessary error during analytic processing run, we trim un-needed white-spaces from within **EVTYPE** vector then convert to upper case for conformity with the requirement of downstream analytic processing. Please refer to **EVCLASS** for further explanation.
 ```{r data.proc.3, tidy=TRUE}
 # Trim whitespace & convert to upper case.
 StormData$EVTYPE <- toupper(trimws(StormData$EVTYPE))
@@ -257,7 +256,7 @@ repeat {
 **COUNTY**  
 **PROPDMGEXP**  
 **CROPDMGEXP**  
-Trim un-needed embedded white-spaces, if any, from the data values in these data columns and convert to upper case words, to enable simpler analytic processing logic coding.
+Trim un-needed embedded white-spaces, if any, in these data vectors and convert them to upper case words, again for conformity.
 ```{r data.proc.4, tidy=TRUE}
 StormData$STATE <- toupper(trimws(StormData$STATE))
 StormData$COUNTY <- toupper(trimws(StormData$COUNTY))
@@ -266,8 +265,8 @@ StormData$CROPDMGEXP <- toupper(trimws(StormData$CROPDMGEXP))
 ```
 &nbsp;
 
-**EVCLASS** *< derived-variable >*  
-Re-classification of weather events type, to standardize weather event type coding to ensure they are in conformity to the requirement of computer information processing that shall improved reporting.
+**EVCLASS**  *<working-variable>*  
+Re-classification of weather event type, to standardize type coding to overcome the non-standardize text format present in **EVTYPE**, to ensure they are in conformity with the requirement of analytic processing.
 ```{r data.proc.5, tidy=TRUE}
 # Add NEW column EVCLASS to StormData
 StormData <- StormData %>% mutate(EVCLASS = character(1))
@@ -362,18 +361,16 @@ rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 ```
 &nbsp;
 
-**PROPDMGS** *< derived-variable >*  
-Amount of property damages derived from **PROPDMG** augmented by **PROPDMGEXP** number scale.
+**PROPDMGS**  *<working-variable>*  
+Amount of property damages derived from **PROPDMG** augmented by number scale in **PROPDMGEXP**.
 &nbsp;
 
-**CROPDMGS** *< derived-variable >*  
-Amount of crop damages derived from  **CROPDMG** augmented by **PROPDMGEXP** number scale.
+**CROPDMGS**  *<working-variable>*  
+Amount of crop damages derived from **CROPDMG** augmented by number scale in **PROPDMGEXP**.
 &nbsp;
 
-**stormsub**  
-Comprising a subset of the weather event data spawned from the raw data set **StormData**, institute the basis of all subsequent analytic processing. 
-
-Please take note, off-shore affiliated territories of the USA are protectorates not under direct administration of the USA, therefore shall be excluded from **stormsub** data table.
+**stormsub**  *<working-data set>*  
+Comprise of subset of the weather event data spawned from the raw data set **StormData**, instituting the basis of all subsequent analytic processing and reporting. 
 ```{r data.proc.6, tidy=TRUE}
 # subset of StormData across the USA (exclude off-shore territories).
 stormsub <- StormData %>% 
@@ -389,13 +386,16 @@ stormsub <- StormData %>%
                PROPDMGS = mapply(udf.expont, PROPDMGEXP, PROPDMG),
                CROPDMGS = mapply(udf.expont, CROPDMGEXP, CROPDMG)) 
 ```
+Please take note, off-shore affiliated territories of the USA are protectorates not under direct administration of the USA, therefore shall be excluded from **stormsub** data set.  
+&nbsp;
 &nbsp;
 
 
 ## Results
 
+
 <!-- weather events frequency aggregate overview barchart -->
-```{r data.analytic, tidy=TRUE, fig.width=13, fig.height=12, fig.cap="Figure-1 : Weather Events Overview across USA"} 
+```{r data.analytic, fig.cap="Figure 1: Overview of Weather Events across USA", message=FALSE, tidy=TRUE, fig.width=13, fig.height=12} 
 par(par.def)
 
 pal <- mypal[seq(length(mypal), by = -2, length.out = N)]
@@ -481,10 +481,11 @@ barplot(ECONLOSS ~ EVCLASS + STATE, data = evcnt3,
 
 title(ylab = "Property/Crop Loss ( $Bn )", cex.lab = 0.90)
 mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -3.00, adj = 1, padj = 0, cex = 0.75)
-```
-&nbsp;
 
-Graph plot in Figure-1 above illustrates the overview of weather events across the USA from 1950 to 2011.
+```
+
+
+Barchart in Figure 1 above illustrates the overview of weather events across the USA from 1950 to 2011.
 
 Qeustion 1.  
 Which types of events are most harmful with respect to population health?
@@ -494,14 +495,14 @@ Which types of events are most harmful with respect to population health?
 Question 2.
 Which types of events have the greatest economic consequences?
 
-**(1)Storm**, **(2)Flood** and **(3)Tornado** are most devastated in terms of economic consequences in the order of property/crops loss caused by each event type.
+**(1)Storm**, **(2)Flood** and **(3)Tornado** are most devastated in terms of economic consequences in the order of amount of property/crops damaged by each event type.
 
-Conclusion: Not in any particular order, **Tornado**, **Storm** and **Flood** are most hazardous weather in the USA.
-
+Conclusion: Not in any particular order, **Tornado**, **Storm** and **Flood** are most hazardous weather in the USA.  
+&nbsp;
 &nbsp;
 
 <!-- trends of weather events across the usa from 1950 ~ 2011 -->
-```{r data.analytic2, tidy=TRUE, results="hold", fig.width=12, fig.height=8, fig.cap="Figure-2 : Trends of Weather Events"}
+```{r data.analytic2, message=TRUE, tidy=TRUE, fig.width=12, fig.height=8, fig.cap="Figure 2: Trends of Weather Events"}
 par(par.def)
 
 evcnt4 <- stormsub %>% 
@@ -535,13 +536,13 @@ xyp <- update(xyp, panel = function(x, y, ...) {
 
 print(xyp)
 ```
-&nbsp;
 
-From Figure-2 above, the frequency of occurrences of weather event are generally on the up trend since 1950. Closer inspection on the graph indicates incidence data of some event types e.g. **Extreme.Temp**, **Snow.Ice**, **Rain.Flood**, **Wild.Fire** and **Lightning** only began in 1993. However, does not invalidate earlier consensus that the rate of occurrences of the measured weather events are picking up in frequency and getting more rapid in recent years.  
+
+From scatter plot in  above, the frequency of occurrence of weather event are generally on the up trend since 1950 till 2011. Closer inspection on the scatter plot indicates incidence data of some event types e.g. **Extreme.Temp**, **Snow.Ice**, **Rain.Flood**, **Wild.Fire** and **Lightning** only began in 1993. According to National Weather Service https://www.weather.gov/timeline, in 1989 an eight year plan was announced for the modernization and restructuring of NWS agency. The massive overhaul change the way the agency operates resulting in improved capabilities, beginning 1993 enable more observation dimensions hence more data collected. However, different length of observation does not invalidate earlier consensus that the rate of occurrence of all measured weather events are trending in the sam direction and getting more rapid.  
 &nbsp;
 
 <!-- maps of the usa with weather events mapping -->
-```{r data.analytic3, tidy=TRUE, results="hold", fig.width=12, fig.height=8, fig.cap="Figure 3 : Locale of Most Hazardous Weather Events (1990 ~ 2010)"}
+```{r data.analytic3, fig.cap=paste("Figure 3: Locale of Most Hazardous Events (1990 ~ 2010)"), message=FALSE, tidy=TRUE, fig.width=12, fig.height=8}
 # Mapping locations of Tornado, Storm & Flood events for year 1990 ~ 2010
 par(par.def)
 
@@ -654,15 +655,16 @@ plot(log(ECONLOSS.sum) ~ YEARS,
      pch = 19, col = pal[ev.klass], cex = 0.8)
 title(main = "Property/Crop Loss", ylab = "(log scale)")
 ```
+
+
+The map of USA in  illustrates the locale of the 3-most hazardous weather type in the USA for period 1990 ~ 2010.  
+
+Scatter plot graphs for Property/Crop Loss and Number of Casualty in The bottom of \ref{fig:figs} yield an interesting phenomenon about their opposing trends; Property/Crop Loss is rising while Number of Casualty is declining. As the frequency of occurrences of weather events across the USA is increasing, stationary assets such as crops and properties will suffer damages when the events strike but human will stay behind shelters to evade the disaster.
+&nbsp;
 &nbsp;
 
-The map of USA in Figure-3 illustrates the locale of the 3-most hazardous weather type in the USA for period 1990 ~ 2010.  
 
-Scatter plot graphs for Property/Crop Loss and Number of Casualty at The bottom of Figure-3 yield some interesting facts about their opposing trends; Property/Crop Loss is rising and Number of Casualty is declining. As the frequency of occurrences of weather events across the USA is increasing, stationary assets such as crops and properties will suffer damages when the events strike but human will stay behind shelters to evade the disaster.
-&nbsp;
-
-
-```{r house.keeping}
+```{r house.keeping, include=FALSE}
 rm(lat, lon, nf, m, v, w, i, j, maxtik, va, xyp, ev.w.gcs, mymap0)
 ```
 
@@ -753,5 +755,6 @@ rm(lat, lon, nf, m, v, w, i, j, maxtik, va, xyp, ev.w.gcs, mymap0)
 <!-- flush(filesrc) -->
 <!-- close(filesrc) -->
 <!-- ``` -->
+
 
 
