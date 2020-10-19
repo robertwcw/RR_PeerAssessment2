@@ -5,25 +5,25 @@ date: "9/21/2020"
 output: 
   html_document: 
     keep_md: yes
-    fig_width: 13
-    fig_height: 9
     toc_depth: 4
 ---
 ## SYNOPSIS
 
-Natural disaster triggered by storms and abnormal weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns **WHERE** the events took place and **WHEN** the disasters struck by **WHAT** types of events give rise to deleterious social impact aftermath with respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of relevant metrics of the number of human injuries/fatalities, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
+Natural disaster triggered by storm, tornado and a host of other weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns **WHERE** the events took place and **WHEN** the disasters struck by **WHAT** types of events gave rise to deleterious social impact aftermath with respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of relevant metrics of the number of human casualty, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
+
+Weather events occurred in the affiliated territories of the USA are not included in this analysis.  
 &nbsp;
 
-#### Initialize R workspace for current session.
-```{r setup, results="hide"}
+#### Initialize R workspace
+```{r setup, tidy=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
-# .Rfliburl <- "https://raw.githubusercontent.com/robertwcw/Rflib/master"
-# source(file.path(.Rfliburl,"getRflib.R"),local = TRUE)
-# source(getRflib("is.defined.R"),local = TRUE)
-# source(getRflib("myplclust.R"),local = TRUE)
-# source(getRflib("strCap.R"),local = TRUE)
+.Rfliburl <- "https://raw.githubusercontent.com/robertwcw/Rflib/master"
+source(file.path(.Rfliburl,"getRflib.R"),local = TRUE)
+source(getRflib("is.defined.R"),local = TRUE)
+source(getRflib("myplclust.R"),local = TRUE)
+source(getRflib("strCap.R"),local = TRUE)
 
 if (!requireNamespace("data.table",quietly = TRUE)) install.packages("data.table")
 library(data.table)
@@ -120,9 +120,14 @@ par.def <- par(no.readonly = TRUE)
 
 #### Data Loading
 
-Loading *raw* comma-delimited text file data set downloaded from course website into R workspace as data.table class object with naming of the data object derives from the source file programmatically.
+Loading into R workspace the compressed *raw* comma-delimited text file in bz2 format downloaded from the course website, as data.table class object with naming of the data object derived from the source file programmatically.
 
-```{r data.load, cache=TRUE, tidy=TRUE}
+1) obtain the URL for NOAA Stormdata data set from the course website.
+2) set up the mechanism to download the raw data file onto local storage.
+3) uncompressed the downloaded raw file and extract a comma-delimited text file.
+4) read the comma-delimited text file into R workspace as data table for efficiency.  
+
+```{r data.load, tidy=TRUE}
 # loading data downloaded from course website into R workspace 
 #   user  system elapsed 
 # 53.457   1.190  57.097 
@@ -158,82 +163,117 @@ filenam <- filenam[which(!is.na(filenam))]
 
 unlink(filetmp)
 rm(fileurl,filetmp,filesrc,filels,filein)
-
 ```
 &nbsp;
 
 #### Exploratory Data Analysis
 
-```{r eda.0}
+```{r eda.0, tidy=TRUE}
 for (i in 1:length(filenam)) {
         print(paste(i, ":",filenam[i], "(",floor(object.size(get(filenam[i]))/10e+05),"MB)"))
 }
-
 ```
-**`r length(filenam)`** *raw* data `r ifelse(length(filenam) > 1, "sets were", "set was")` loaded into R workspace from NOAA sourced data downloaded from the course website. (number in bracket depicts memory footprint).
 
-Structure of data object **`r filenam[1]`**.
-```{r eda.1}
+**`r length(filenam[1])`** data `r ifelse(length(filenam) > 1, "sets were", "set was")` extracted and loaded into R workspace from NOAA sourced data downloaded from the course website. (number in bracket depicts memory footprint).
+
+Structure of the **`r filenam[1]`** data set.
+
+```{r eda.1, tidy=TRUE}
 str(get(filenam[1]))
-
 ```
-There are **`r length(names(get(filenam[1])))`** columns found in the *raw* data set **`r filenam[1]`**. 
+&nbsp;
+<!-- There are **`r length(names(get(filenam[1])))`** columns found in the **`r filenam[1]`** data set.   -->
+&nbsp;
 
-```{r data.proc, cache=TRUE, tidy=TRUE}
-# preprocessing data, perform required transformation for downstream analytic
-#    user  system elapsed 
-# 333.129  92.214 422.774
+Preliminary visual examination on the `r filenam[1]` data set revealed there are a number of data columns in the `r class(get(filenam[1]))[1]` entail further processing and transformation that are compulsory to enable downstream analytic processing, as understood the **`r filenam[1]`** data set, is quite "dirty".  
+&nbsp;
 
+## Data Processing
+
+For the purpose of this analysis work, which is to answer the pertinent questions about the weather events of WHERE, WHEN and WHAT; we will proceed to spawn a new data table object called **stormsub** with a subset of 11 variables from existing raw data set `r filenam[1]`, plus a few more derived variables base on existing vectors. The following is the subset of variables grabbed from the existing raw data set **`r filenam[1]**`:  
+```{r data.proc, tidy=TRUE}
+v <- c(5,7,8,23,24,25,26,27,28,32,33)
+va <- array(dim = c(length(v),2))
+for (i in 1:length(v)) {
+        va[i,1] <- names(get(filenam[1]))[v[i]]
+        va[i,2] <- class(names(get(filenam[1]))[v[i]])
+}
+print(va)
+```
+column 1: Name of Variable  
+column 2: Data Type  
+&nbsp;
+
+
+**EV_TIMESTAMP** *< derived-variable >*  
+Generate a time-stamp in POSIXct type, base on existing raw data BGN_DATE & BGN_TIME for each event as it was recorded in the raw data set. 
+```{r data.proc.1, tidy=TRUE}
 d1 <- sub(" .*", "", StormData$BGN_DATE)
 d2 <- gsub("[oO]", "0", StormData$BGN_TIME) # rectify typo error of 'O' for '0'
 d2 <- sub("12:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
 d2 <- sub("00:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
 d2 <- unlist(lapply(d2, udf.str2time)) # unify various time format to "hh:mm:ss"
+
 StormData <- StormData %>% mutate(EV_TIMESTAMP = as.POSIXct(strptime(paste(d1,d2), "%m/%d/%Y %H:%M:%S")))
 
 rm(d1, d2)
+```
+&nbsp;
 
-# # # NOT USED
-# # prepend -ve sign to LONGITUDE values belong to the western hemisphere
-#   StormData$LONGITUDE <- sapply(StormData$LONGITUDE, udf.prependsign)
+**LATITUDE** & **LONGITUDE**  
+Geographic coordinates are used in mapping weather events onto the map of USA to visually tell user where were the events took place. **LATITUDE** and **LONGITUDE** data in their current form are not use-able by any mapping system, must go through a conversion process to transform them into geographic coordinate system configuration to be readily recognized by base R mapping tools.
+```{r data.proc.2, tidy=TRUE}
+# Reformat LATITUDE vector to geographic coordinate system format nnn.ddd
+numsign <- sign(StormData$LATITUDE)
+lat <- sapply(StormData$LATITUDE, udf.stripsign)
+lat <- sapply(lat, udf.num2gcs, 2) # '2' is number of significant digits
+StormData$LATITUDE <- lat * (numsign * numsign) # LATs belong to northern hemisphere 
 
-#   user  system elapsed 
-# 36.600   0.271  36.910
-# reformat LATITUDE vector to geographic coordinate system format nnn.ddd
-  numsign <- sign(StormData$LATITUDE)
-  lat <- sapply(StormData$LATITUDE, udf.stripsign)
-  lat <- sapply(lat, udf.num2gcs, 2) # '2' is number of significant digits
-  StormData$LATITUDE <- lat * (numsign * numsign) # LATs belong to northern hemisphere 
+# Reformat LONGITUDE vector to geographic coordinate system format nnn.ddd
+numsign <- sign(StormData$LONGITUDE)
+lon <- sapply(StormData$LONGITUDE, udf.stripsign)
+lon <- sapply(lon, udf.num2gcs, 3) # '3' is number of significant digits
+StormData$LONGITUDE <- lon * (numsign * -numsign) # LONs belong to western hemisphere
 
-#   user  system elapsed 
-# 36.108   0.214  36.344   
-# reformat LONGITUDE vector to geographic coordinate system format nnn.ddd
-  numsign <- sign(StormData$LONGITUDE)
-  lon <- sapply(StormData$LONGITUDE, udf.stripsign)
-  lon <- sapply(lon, udf.num2gcs, 3) # '3' is number of significant digits
-  StormData$LONGITUDE <- lon * (numsign * -numsign) # LONs belong to western hemisphere
-  
 rm(lon, lat, numsign)  
+```
+&nbsp;
 
-# trim whitespaces on both ends of EVTYPE and transform to uppercase
+**EVTYPE**  
+Data values captured in EVTYPE in its raw format is quite a bit "dirty" and present itself in human natural language construct than conforming to format useful for information processing using computers. To enable simpler data processing logic coding and avoid unnecessary error during analytic processing run, we trim un-needed white-spaces from within **EVTYPE** and then convert to upper case. Please refer to **EVCLASS** for further explanation.
+```{r data.proc.3, tidy=TRUE}
+# Trim whitespace & convert to upper case.
 StormData$EVTYPE <- toupper(trimws(StormData$EVTYPE))
 
 # trim redundant intermediate whitespaces of length(n) to length(1)
 repeat {
         StormData$EVTYPE <- sub("  ", " ", StormData$EVTYPE, useBytes = TRUE)
-        if (length(grep("  ", StormData$EVTYPE, useBytes = TRUE)) == 0) {break}
+        if (length(grep("  ", StormData$EVTYPE, useBytes = TRUE)) == 0) break
 }
+```
+&nbsp;
 
+**STATE**  
+**COUNTY**  
+**PROPDMGEXP**  
+**CROPDMGEXP**  
+Trim un-needed embedded white-spaces, if any, from the data values in these data columns and convert to upper case words, to enable simpler analytic processing logic coding.
+```{r data.proc.4, tidy=TRUE}
 StormData$STATE <- toupper(trimws(StormData$STATE))
+StormData$COUNTY <- toupper(trimws(StormData$COUNTY))
 StormData$PROPDMGEXP <- toupper(trimws(StormData$PROPDMGEXP))
 StormData$CROPDMGEXP <- toupper(trimws(StormData$CROPDMGEXP))
+```
+&nbsp;
 
-# weather events classes  https://www.weather.gov/iwx/events
-
-# Add a NEW column EVCLASS to StormData data set
+**EVCLASS** *< derived-variable >*  
+Re-classification of weather events type, to standardize weather event type coding to ensure they are in conformity to the requirement of computer information processing that shall improved reporting.
+```{r data.proc.5, tidy=TRUE}
+# Add NEW column EVCLASS to StormData
 StormData <- StormData %>% mutate(EVCLASS = character(1))
 
-# weather event classification coding
+# Re-classification of weather events type.
+# https://www.weather.gov/iwx/events
 # A - TORNADOs of all kinds 
 # B - EXTREME TEMPERATURES on both end of the scale
 # C - SNOWY & ICY conditions
@@ -247,10 +287,10 @@ StormData <- StormData %>% mutate(EVCLASS = character(1))
 # Z - OTHER events not classified 
 
 # Array Index 24, 25 & 26 of the ev.class array are the special designated classes.
-# DO NOT ALTER the hard-designated values in index 24, 25 & 26, except the EXCLUSION keyword for weather events at index [24,2].
-# Array Index 24 - EXCLUSION class, use for assigning weather events that are to be excluded from analytic processing. Change the search keyword of the weather event in the character string at index[24,2] as require.
+# DO NOT ALTER the hard-designated values in index 24, 25 & 26, except the EXCLUSION keyword for weather events at index [24,3].
+# Array Index 24 - EXCLUSION class, use for assigning weather events that are to be excluded from analytic processing. Change the search keyword of the weather event in the character string at index[24,3] as required.
 # Array Index 25 - reserved.
-# Array Index 26 - OTHER class, use for classifying weather events not classified by the regular class codes from index 1 to 23, and 25. Do NOT alter.
+# Array Index 26 - OTHER class, use for classifying weather events not classified by the regular class codes from index 1 to 23. Do NOT alter.
 # DO NOT assign empty string value to the array cells, otherwise will result in unexpected outcome.
 # DO NOT ALTER the sequence order of the default class codes and search keywords (array index 1 ~ 23).
 ev.class <- array(dim = c(26,3))
@@ -265,14 +305,14 @@ ev.class[3,2] <- "SNOW.ICE"
 ev.class[3,3] <- "SNOW|ICE|WINTER|BLIZZARD|FREEZ(E|ING)|SLEET|ICY"
 ev.class[4,1] <- "D"
 ev.class[4,2] <- "WIND.STORM"
-ev.class[4,3] <- "WIND|STORM|GUSTNA|HURRICAN|TYPHOON|TURBULENCE|BURST|DUST|TSTM|CLOUD|FUNNEL|WALL"
+ev.class[4,3] <- "WIND|STORM|GUSTNA|HURRICAN|TYPHOON|TURBULENCE|BURST|DUST|TSTM"
 ev.class[5,1] <- "E"
 ev.class[5,2] <- "RAIN.FLOOD"
 ev.class[5,3] <- "FLOOD|WET|RAIN|SHOWER|HEAVY|PRECIPITAT"
 ev.class[6,1] <- "F"
 ev.class[6,2] <- "HAIL"
 ev.class[6,3] <- "HAIL"
-# ev.class[7,1] <- "G"
+# ev.class[7,1] <- "G"  # commented - shall go into OTHERS class automatically
 # ev.class[7,2] <- "CLOUD"
 # ev.class[7,3] <- "CLOUD|FUNNEL|WALL"
 ev.class[8,1] <- "H"
@@ -291,13 +331,14 @@ ev.class[26,3] <- "OTHERS"    # OTHER class. DO NOT ALTER.
 P <- which(!is.na(ev.class[1:23,1]))
 N <- length(P)
 
-# 0. EXCLUDED - weather events to exclude
+# EXCLUDED - weather events to exclude
 evclass.rowid <- grep(ev.class[24,3], StormData$EVTYPE)
 evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
 evclass <- cbind(evclass.rowid, evclass.evtyp)
 StormData <- StormData %>% 
         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[24,1]))
 
+# weather events defined by the regular search keywords
 for (i in 1:N) {
         evclass.rowid <- grep(ev.class[P[i],3], StormData$EVTYPE)
         evclass.rowid <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
@@ -308,7 +349,7 @@ for (i in 1:N) {
               mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[P[i],1]))
 }
 
-# 00. OTHER - weather events not classified by the regular class codes
+# OTHERS - weather events not classified by the regular class codes
 evclass.rowid <- as.integer(row.names(StormData))
 evclass.rowid <- evclass.rowid[!(evclass.rowid %in% as.integer(evclass[,1]))]
 evclass.evtyp <- StormData[evclass.rowid,]$EVTYPE
@@ -317,35 +358,58 @@ evclass <- rbind(evclass, evclass.tmp)
 StormData <- StormData %>% 
         mutate(EVCLASS = replace(EVCLASS, evclass.rowid, ev.class[26,1]))
 
+rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
+```
+&nbsp;
+
+**PROPDMGS** *< derived-variable >*  
+Amount of property damages derived from **PROPDMG** augmented by **PROPDMGEXP** number scale.
+&nbsp;
+
+**CROPDMGS** *< derived-variable >*  
+Amount of crop damages derived from  **CROPDMG** augmented by **PROPDMGEXP** number scale.
+&nbsp;
+
+**stormsub**  
+Comprising a subset of the weather event data spawned from the raw data set **StormData**, institute the basis of all subsequent analytic processing. 
+
+Please take note, off-shore affiliated territories of the USA are protectorates not under direct administration of the USA, therefore shall be excluded from **stormsub** data table.
+```{r data.proc.6, tidy=TRUE}
 # subset of StormData across the USA (exclude off-shore territories).
 stormsub <- StormData %>% 
         select(EV_TIMESTAMP, EVCLASS, EVTYPE, LONGITUDE, LATITUDE, STATE, COUNTY,
                FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP,
                REFNUM) %>%
         filter(STATE %in% mystates & !(EVCLASS %in% c("X","Z"))) %>% 
+        arrange(EV_TIMESTAMP) %>%
         mutate(STATE = factor(STATE),
+               LONGITUDE = round(LONGITUDE, 1),
+               LATITUDE = round(LATITUDE, 1),
                EVCLASS = factor(EVCLASS, labels = ev.class[P,2]),
                PROPDMGS = mapply(udf.expont, PROPDMGEXP, PROPDMG),
-               CROPDMGS = mapply(udf.expont, CROPDMGEXP, CROPDMG)) %>%
-        arrange(EV_TIMESTAMP)
-                # (!is.na(LONGITUDE) & !is.na(LATITUDE)) &
-                #        (LONGITUDE != 0 & LATITUDE != 0)) %>%
-
-rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
-
+               CROPDMGS = mapply(udf.expont, CROPDMGEXP, CROPDMG)) 
 ```
+&nbsp;
 
 
-<!-- weather events frequency aggregate overview barchart plot-->
-```{r data.analytic, cache=TRUE} 
+## Results
+
+<!-- weather events frequency aggregate overview barchart -->
+```{r data.analytic, tidy=TRUE, fig.width=13, fig.height=12, fig.cap="Figure-1 : Weather Events Overview across USA"} 
+par(par.def)
+
 pal <- mypal[seq(length(mypal), by = -2, length.out = N)]
 
-# set up plotting layout and global graphics parameters 
-par(par.def)
+# set up plotting layout and graphics parameters 
 par(las = 1, cex.axis = 0.80, cex.lab = 0.85, ann = FALSE)
 nf <- layout(matrix(c(1,2,
+                      1,2,
                       3,3,
-                      4,4), nrow = 3, byrow = TRUE))
+                      3,3,
+                      3,3,
+                      4,4,
+                      4,4,
+                      4,4), nrow = 8, byrow = TRUE))
 
 # weather events aggregate frequency by type across the USA.
 evcnt1 <- stormsub %>%
@@ -354,7 +418,8 @@ evcnt1 <- stormsub %>%
         summarise(EVCNT = n())
 
 # plotting barchart for weather events aggregate by type across the USA.
-par(mai = c(0.25,1.10,0.25,0.10))
+
+par(mai = c(0.25, 0.92, 0.25, 0.10))
 
 barplot(evcnt1$EVCNT, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt1$EVCLASS))
 
@@ -376,8 +441,9 @@ evcnt2 <- stormsub %>%
         group_by(EVCLASS) %>%
         summarise(EVCNT = n())
 
-# plotting barchart for aggregate frequency of weather events manifested in casualty and property/crop loss by type across the USA.
-par(mai = c(0.25,0.10,0.25,1.10), yaxt = "n")
+# plotting barchart for weather events frequency aggregate manifested in casualty and property/crop loss by type across the USA.
+
+par(mai = c(0.25,0.10,0.25,0.82), yaxt = "n")
 
 barplot(evcnt2$EVCNT, horiz = TRUE, border = NA, col = pal, names.arg = unique(evcnt2$EVCLASS))
 
@@ -400,27 +466,44 @@ evcnt3 <- stormsub %>%
         summarise(ECONLOSS = (sum(PROPDMGS) + sum(CROPDMGS)) / 1e+09,
                   CASUALTI = (sum(FATALITIES) + sum(INJURIES)) / 1e+03)
 
-par(mai = c(0.25, 1.10, 0.25, 1.10), cex.axis = 0.75, ann = FALSE, yaxt = "s")
+par(mai = c(0.25, 0.92, 0.25, 0.82), cex.axis = 0.75, ann = FALSE, yaxt = "s")
 
 barplot(CASUALTI ~ EVCLASS + STATE, data = evcnt3,
         border = NA,
         col = pal)
 
 title(ylab = "Casualty Count ( '000 )", cex.lab = 0.90)
-mtext("Casualty by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.75)
+mtext("Casualty by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -3.00, adj = 0, padj = 0, cex = 0.75)
 
 barplot(ECONLOSS ~ EVCLASS + STATE, data = evcnt3,
         border = NA,
         col = pal)
 
 title(ylab = "Property/Crop Loss ( $Bn )", cex.lab = 0.90)
-mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -0.75, adj = 1, padj = 0, cex = 0.75)
+mtext("Property/Crop Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = -3.00, adj = 1, padj = 0, cex = 0.75)
+```
+&nbsp;
 
+Graph plot in Figure-1 above illustrates the overview of weather events across the USA from 1950 to 2011.
+
+Qeustion 1.  
+Which types of events are most harmful with respect to population health?
+
+**(1)Tornado**, **(2)Storm**, **(3)Flood** and **(4)Hail** are most hazardous with respect to population health in the order of casualty count of each event type.
+
+Question 2.
+Which types of events have the greatest economic consequences?
+
+**(1)Storm**, **(2)Flood** and **(3)Tornado** are most devastated in terms of economic consequences in the order of property/crops loss caused by each event type.
+
+Conclusion: Not in any particular order, **Tornado**, **Storm** and **Flood** are most hazardous weather in the USA.
+
+&nbsp;
+
+<!-- trends of weather events across the usa from 1950 ~ 2011 -->
+```{r data.analytic2, tidy=TRUE, results="hold", fig.width=12, fig.height=8, fig.cap="Figure-2 : Trends of Weather Events"}
 par(par.def)
 
-```
-
-```{r data.analytic2, cache=TRUE}
 evcnt4 <- stormsub %>% 
         select(EV_TIMESTAMP, EVCLASS, 
                FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
@@ -451,16 +534,20 @@ xyp <- update(xyp, panel = function(x, y, ...) {
         })
 
 print(xyp)
-
-par(par.def)
-
 ```
+&nbsp;
 
-```{r data.analytic3}
+From Figure-2 above, the frequency of occurrences of weather event are generally on the up trend since 1950. Closer inspection on the graph indicates incidence data of some event types e.g. **Extreme.Temp**, **Snow.Ice**, **Rain.Flood**, **Wild.Fire** and **Lightning** only began in 1993. However, does not invalidate earlier consensus that the rate of occurrences of the measured weather events are picking up in frequency and getting more rapid in recent years.  
+&nbsp;
+
+<!-- maps of the usa with weather events mapping -->
+```{r data.analytic3, tidy=TRUE, results="hold", fig.width=12, fig.height=8, fig.cap="Figure 3 : Locale of Most Hazardous Weather Events (1990 ~ 2010)"}
+# Mapping locations of Tornado, Storm & Flood events for year 1990 ~ 2010
+par(par.def)
 
 ev.klass <- c(1,4,5) # TORNADO, WIND.STORM & FLOOD
 
-w <- which(year(stormsub$EV_TIMESTAMP) %in% c(2000,2010) & 
+w <- which(year(stormsub$EV_TIMESTAMP) %in% c(1990:2010) & 
                    as.numeric(stormsub$EVCLASS) %in% ev.klass)
 
 nf <- layout(matrix(c(1,1,1,1,2,2,
@@ -481,11 +568,20 @@ par(mai = c(0.25, 0.32, 0.25, 0.25))
 plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
 title(main = "USA mainland")
 # coordinates of weather events for USA mainland
-ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w & 
-                           ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) &
-                                    (LATITUDE > lat[1] & LATITUDE < lat[2])),
-                   c(LONGITUDE, LATITUDE))
-points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.8, 
+ev.w.gcs <- stormsub %>%
+        select(STATE, COUNTY, EVCLASS, LONGITUDE, LATITUDE, 
+               FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
+        filter(as.numeric(rownames(stormsub)) %in% w &
+                ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) & 
+                 (LATITUDE > lat[1] & LATITUDE < lat[2]))) %>%
+        arrange(LONGITUDE, LATITUDE) %>%
+        group_by(EVCLASS, LONGITUDE, LATITUDE) %>%
+        summarize(EVCNT = n(),
+                  FATALITI = sum(FATALITIES),
+                  INJURIES = sum(INJURIES),
+                  PROPDMGS = sum(PROPDMGS),
+                  CROPDMGS = sum(CROPDMGS))
+points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.5, 
        col = alpha(pal[ev.klass], 0.2))
 legend(x = -75, y = 25, ev.class[ev.klass,2], fill = pal[ev.klass], 
        border = pal[ev.klass], bty = "n", x.intersp = 1/2, y.intersp = 1, 
@@ -500,12 +596,20 @@ par(mai = c(0.25, 0.32, 0.25, 0.25))
 plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
 title(main = "Alaska")
 # coordinates of events for Alaska
-ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w &
-                           ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) &
-                                    (LATITUDE > lat[1] & LATITUDE < lat[2])),
-                   c(LONGITUDE, LATITUDE)
-                   )
-points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 2.0, 
+ev.w.gcs <- stormsub %>%
+        select(STATE, COUNTY, EVCLASS, LONGITUDE, LATITUDE, 
+               FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
+        filter(as.numeric(rownames(stormsub)) %in% w &
+                ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) & 
+                 (LATITUDE > lat[1] & LATITUDE < lat[2]))) %>%
+        arrange(LONGITUDE, LATITUDE) %>%
+        group_by(EVCLASS, LONGITUDE, LATITUDE) %>%
+        summarize(EVCNT = n(),
+                  FATALITI = sum(FATALITIES),
+                  INJURIES = sum(INJURIES),
+                  PROPDMGS = sum(PROPDMGS),
+                  CROPDMGS = sum(CROPDMGS))
+points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 1.1, 
        col = alpha(pal[ev.klass], 0.5))
 
 # Map of Hawaii
@@ -516,12 +620,25 @@ par(mai = c(0.27, 0.32, 0.25, 0.25))
 plot(mymap0, type = "l", lwd = 0.5, ann = FALSE)
 title(main = "Hawaii")
 # coordinates of events 
-ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w &
-                           ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) &
-                                    (LATITUDE > lat[1] & LATITUDE < lat[2])),
-                   c(LONGITUDE, LATITUDE)
-                   )
-points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 1.2, 
+ev.w.gcs <- stormsub %>%
+        select(STATE, COUNTY, EVCLASS, LONGITUDE, LATITUDE, 
+               FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
+        filter(as.numeric(rownames(stormsub)) %in% w &
+                ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) & 
+                 (LATITUDE > lat[1] & LATITUDE < lat[2]))) %>%
+        arrange(LONGITUDE, LATITUDE) %>%
+        group_by(EVCLASS, LONGITUDE, LATITUDE) %>%
+        summarize(EVCNT = n(),
+                  FATALITI = sum(FATALITIES),
+                  INJURIES = sum(INJURIES),
+                  PROPDMGS = sum(PROPDMGS),
+                  CROPDMGS = sum(CROPDMGS))
+# ev.w.gcs <- subset(stormsub, as.numeric(rownames(stormsub)) %in% w &
+#                            ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) &
+#                                     (LATITUDE > lat[1] & LATITUDE < lat[2])),
+#                    c(LONGITUDE, LATITUDE)
+#                    )
+points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 1.1, 
        col = alpha(pal[ev.klass], 0.5))
 
 
@@ -536,98 +653,105 @@ plot(log(ECONLOSS.sum) ~ YEARS,
      data = subset(evcnt4, as.numeric(EVCLASS) %in% ev.klass),
      pch = 19, col = pal[ev.klass], cex = 0.8)
 title(main = "Property/Crop Loss", ylab = "(log scale)")
+```
+&nbsp;
 
-par(par.def)
+The map of USA in Figure-3 illustrates the locale of the 3-most hazardous weather type in the USA for period 1990 ~ 2010.  
 
+Scatter plot graphs for Property/Crop Loss and Number of Casualty at The bottom of Figure-3 yield some interesting facts about their opposing trends; Property/Crop Loss is rising and Number of Casualty is declining. As the frequency of occurrences of weather events across the USA is increasing, stationary assets such as crops and properties will suffer damages when the events strike but human will stay behind shelters to evade the disaster.
+&nbsp;
+
+
+```{r house.keeping}
+rm(lat, lon, nf, m, v, w, i, j, maxtik, va, xyp, ev.w.gcs, mymap0)
 ```
 
 
-```{r data.analytic.notused}
-par(par.def)
-par(las = 1, cex.axis = 0.50, cex.lab = 0.80, ann = FALSE)
-nf <- layout(matrix(c(1,2), nrow = 2, byrow = TRUE))
+<!-- # ```{r data.analytic.notused} -->
+<!-- par(par.def) -->
+<!-- par(las = 1, cex.axis = 0.50, cex.lab = 0.80, ann = FALSE) -->
+<!-- nf <- layout(matrix(c(1,2), nrow = 2, byrow = TRUE)) -->
 
-# weather events aggregate frequency of individual state.
-evcnt <- stormsub %>%
-        select(STATE,EVCLASS,EVTYPE) %>%
-        group_by(STATE, EVCLASS) %>%
-        summarise(EVCNT = n()/1e+03)
+<!-- # weather events aggregate frequency of individual state. -->
+<!-- evcnt <- stormsub %>% -->
+<!--         select(STATE,EVCLASS,EVTYPE) %>% -->
+<!--         group_by(STATE, EVCLASS) %>% -->
+<!--         summarise(EVCNT = n()/1e+03) -->
 
-# plotting barchart for the occurrence of weather-events of individual state.
-par(mai = c(0.55, 1.10, 0.55, 1.10))
-barplot(EVCNT ~ EVCLASS + as.character(STATE), data = evcnt, 
-        horiz = FALSE, 
-        border = NA,
-        col = pal)
-title(ylab = "Event Frequency by Type ('000)")
-mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.80)
+<!-- # plotting barchart for the occurrence of weather-events of individual state. -->
+<!-- par(mai = c(0.55, 1.10, 0.55, 1.10)) -->
+<!-- barplot(EVCNT ~ EVCLASS + as.character(STATE), data = evcnt, -->
+<!--         horiz = FALSE, -->
+<!--         border = NA, -->
+<!--         col = pal) -->
+<!-- title(ylab = "Event Frequency by Type ('000)") -->
+<!-- mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.80) -->
 
-# aggregate weather events of individual state manifested in casualty and economic loss.
-evcnt0 <- stormsub %>%
-        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMGS,CROPDMGS) %>%
-        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMGS > 0 | CROPDMGS > 0) %>%
-        group_by(STATE, EVCLASS) %>%
-        summarise(EVCNT = n()/1e+03)
+<!-- # aggregate weather events of individual state manifested in casualty and economic loss. -->
+<!-- evcnt0 <- stormsub %>% -->
+<!--         select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMGS,CROPDMGS) %>% -->
+<!--         filter(FATALITIES > 0 | INJURIES > 0 | PROPDMGS > 0 | CROPDMGS > 0) %>% -->
+<!--         group_by(STATE, EVCLASS) %>% -->
+<!--         summarise(EVCNT = n()/1e+03) -->
 
-# plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for each state.
-par(mai = c(0.55, 1.10, 0.55, 1.10))
-barplot(EVCNT ~ EVCLASS + as.character(STATE), data = evcnt0, 
-        horiz = FALSE, 
-        border = NA,
-        col = pal)
-title(ylab = "Event Frequency by Type ('000)")
-mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.75)
-mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.75)
-
-
-# nf <- layout(matrix(c(1,2,
-#                       1,3), nrow = 2, byrow = TRUE))
-# par(mai = c(0.41,0.82,0.41,0.42))
-# plot(EVCNT ~ YEARS, data = evcnt4, 
-#      pch = 19,
-#      col = pal,
-#      log = "y"
-#      )
-# for (i in 1:N) {
-#         abline(lm(EVCNT ~ YEARS, evcnt4, subset = EVCLASS), col = pal[i])
-# }
-# plot(CASUALTI ~ YEARS, data = evcnt4, 
-#      pch = 19,
-#      col = pal,
-#      log = "y"
-#      )
-# for (i in 1:N) {
-#         abline(lm(CASUALTI ~ YEARS, evcnt4, as.numeric(EVCLASS) == i), col = pal[i])
-# }
-# plot(ECONLOSS ~ YEARS, data = evcnt4, 
-#      pch = 19,
-#      col = pal,
-#      log = "y"
-#      )
-# for (i in 1:N) {
-#         abline(lm(ECONLOSS ~ YEARS, evcnt4, as.numeric(EVCLASS) == i), col = pal[i])
-# }
-# par(par.def)
+<!-- # plotting barchart for weather-events that triggered the occurrences of fatalities/injuries and properties/crops damages for each state. -->
+<!-- par(mai = c(0.55, 1.10, 0.55, 1.10)) -->
+<!-- barplot(EVCNT ~ EVCLASS + as.character(STATE), data = evcnt0, -->
+<!--         horiz = FALSE, -->
+<!--         border = NA, -->
+<!--         col = pal) -->
+<!-- title(ylab = "Event Frequency by Type ('000)") -->
+<!-- mtext("Weather Events Frequency Aggregate of Individual-State (1950 ~ 2011)", font = 2, side = 3, line = 0.25, adj = 0, padj = 0, cex = 0.75) -->
+<!-- mtext("Manifested in Casualty & Property/Crop Loss", font = 2, side = 3, line = -0.75, adj = 0, padj = 0, cex = 0.75) -->
 
 
-# # save an archive copy of StormData data.table to local `r datadir`
-# for (i in 1:length(filenam)) {
-#         fileout <- paste(datadir, filenam[i], sep = "/")
-#         fileout <- paste(fileout, "csv", "bz2", sep = ".")
-#         filesrc <- bzfile(fileout, open = "w")
-#         write.csv(get(filenam[i]), filesrc, row.names = FALSE)
-#         flush(filesrc)
-# }
-# close(filesrc)
-# rm(fileout)
-# 
-# read StormData from saved archive copy data file on local disk
-# filesrc <- paste(datadir, "StormData.csv.bz2", sep = "/")
-# filesrc <- bzfile(filesrc, open = "r") # establish a connection to local file
-# StormData <- data.table(read.csv(filesrc, skip = 0))
-# flush(filesrc)
-# close(filesrc)
+<!-- nf <- layout(matrix(c(1,2, -->
+<!--                       1,3), nrow = 2, byrow = TRUE)) -->
+<!-- par(mai = c(0.41,0.82,0.41,0.42)) -->
+<!-- plot(EVCNT ~ YEARS, data = evcnt4, -->
+<!--      pch = 19, -->
+<!--      col = pal, -->
+<!--      log = "y" -->
+<!--      ) -->
+<!-- for (i in 1:N) { -->
+<!--         abline(lm(EVCNT ~ YEARS, evcnt4, subset = EVCLASS), col = pal[i]) -->
+<!-- } -->
+<!-- plot(CASUALTI ~ YEARS, data = evcnt4, -->
+<!--      pch = 19, -->
+<!--      col = pal, -->
+<!--      log = "y" -->
+<!--      ) -->
+<!-- for (i in 1:N) { -->
+<!--         abline(lm(CASUALTI ~ YEARS, evcnt4, as.numeric(EVCLASS) == i), col = pal[i]) -->
+<!-- } -->
+<!-- plot(ECONLOSS ~ YEARS, data = evcnt4, -->
+<!--      pch = 19, -->
+<!--      col = pal, -->
+<!--      log = "y" -->
+<!--      ) -->
+<!-- for (i in 1:N) { -->
+<!--         abline(lm(ECONLOSS ~ YEARS, evcnt4, as.numeric(EVCLASS) == i), col = pal[i]) -->
+<!-- } -->
+<!-- par(par.def) -->
 
-```
+
+<!-- # save an archive copy of StormData data.table to local `r datadir` -->
+<!-- for (i in 1:length(filenam)) { -->
+<!--         fileout <- paste(datadir, filenam[i], sep = "/") -->
+<!--         fileout <- paste(fileout, "csv", "bz2", sep = ".") -->
+<!--         filesrc <- bzfile(fileout, open = "w") -->
+<!--         write.csv(get(filenam[i]), filesrc, row.names = FALSE) -->
+<!--         flush(filesrc) -->
+<!-- } -->
+<!-- close(filesrc) -->
+<!-- rm(fileout) -->
+
+<!-- read StormData from saved archive copy data file on local disk -->
+<!-- filesrc <- paste(datadir, "StormData.csv.bz2", sep = "/") -->
+<!-- filesrc <- bzfile(filesrc, open = "r") # establish a connection to local file -->
+<!-- StormData <- data.table(read.csv(filesrc, skip = 0)) -->
+<!-- flush(filesrc) -->
+<!-- close(filesrc) -->
+<!-- ``` -->
 
 
