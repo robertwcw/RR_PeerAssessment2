@@ -12,7 +12,7 @@ output:
 
   Disaster triggered by storm, tornado and a host of other weather phenomenons may lead to public health issues and dire economic consequences. The extent, severity, and impact of injuries/fatalities and economic losses are largely determined by the amount of energy unleashed by the types of events in the weather related disasters. This data analysis attempts to address the concerns **WHERE** the events took place and **WHAT** types of events gave rise to deleterious social impact aftermath with respect to economic and public health. Base on the US National Oceanic and Atmospheric Administration (NOAA) storm database, this project makes use of relevant metrics of the number of human casualty, financial losses in properties/crops damages in relation to events types across the US from year 1950 to year 2011.  
 
-  Off-shore affiliated territories of the USA are protectorates not under direct administration of the USA, therefore shall be excluded from this analysis work. 
+  Off-shore affiliated territories of the USA are protectorates not under direct administration of the USA, therefore shall be excluded from this analysis work.  
 &nbsp;
 
 #### Initialize R workspace
@@ -43,6 +43,9 @@ library(lattice)
 
 if (!requireNamespace("scales", quietly  = TRUE)) install.packages("scales")
 library(scales)
+
+if (!requireNamespace("stringr", quietly  = TRUE)) install.packages("stringr")
+library(stringr)
 
 # 'udf.num2gcs' user-defined function to convert LATITUDE & LONGITUDE coordinate values in integer type to nnn.dddd geographic coordinate system format 
 udf.num2gcs <- function(X, y) { # y is number of significant digits.
@@ -242,13 +245,7 @@ rm(lon, lat, numsign)
   Data values captured in EVTYPE in its current raw format is quite a bit "dirty" and mostly present itself in human natural language construct than conforming to standard category coding format useful for information processing using computers. To enable simpler data processing logic coding to avoid unnecessary error during analytic processing run, we trim un-needed white-spaces from within **EVTYPE** vector then convert to upper case for conformity with the requirement of downstream analytic processing. Please refer to **EVCLASS** for further explanation.
 ```{r data.proc.3, tidy=TRUE}
 # Trim whitespace & convert to upper case.
-StormData$EVTYPE <- toupper(trimws(StormData$EVTYPE))
-
-# trim redundant intermediate whitespaces of length(n) to length(1)
-repeat {
-        StormData$EVTYPE <- sub("  ", " ", StormData$EVTYPE, useBytes = TRUE)
-        if (length(grep("  ", StormData$EVTYPE, useBytes = TRUE)) == 0) break
-}
+StormData$EVTYPE <- toupper(str_squish(StormData$EVTYPE))
 ```
 &nbsp;
 
@@ -258,10 +255,10 @@ repeat {
 **CROPDMGEXP**  
   Trim un-needed embedded white-space, if any, then convert these data values to upper case words, again for conformity.
 ```{r data.proc.4, tidy=TRUE}
-StormData$STATE <- toupper(trimws(StormData$STATE))
-StormData$COUNTY <- toupper(trimws(StormData$COUNTY))
-StormData$PROPDMGEXP <- toupper(trimws(StormData$PROPDMGEXP))
-StormData$CROPDMGEXP <- toupper(trimws(StormData$CROPDMGEXP))
+StormData$STATE <- toupper(str_squish(StormData$STATE))
+StormData$COUNTY <- toupper(str_squish(StormData$COUNTY))
+StormData$PROPDMGEXP <- toupper(str_squish(StormData$PROPDMGEXP))
+StormData$CROPDMGEXP <- toupper(str_squish(StormData$CROPDMGEXP))
 ```
 &nbsp;
 
@@ -480,7 +477,7 @@ mtext("Economic Loss by Event Type of Individual-State (1950 ~ 2011)", font = 2,
 ```
 
 
-  Figure 1 above consists of 4 barcharts, each illustrating different dimensions of the data but correlated weather events in the USA. Related weather events are grouped together for this reporting purpose, e.g. all wind related events such as high wind, storm, thunderstorm, gustnado ect are grouped under **WIND.STORM** type. **RAIN.FLOOD** type consists of all water related events such as heavy rains and floods or events that lead to flooding.
+  Figure 1 above consisting 4 barcharts, each chart illustrating different dimensions but correlated weather events data in the USA. Related events are grouped together for this reporting purpose, e.g. all wind related events such as high wind, storm, thunderstorm, gustnado ect are grouped under **WIND.STORM** type. **RAIN.FLOOD** type consists of all water related events such as heavy rains and floods or events that lead to flooding.
 
 Qeustion 1.  
 Which types of events are most harmful with respect to population health?
@@ -492,7 +489,7 @@ Which types of events have the greatest economic consequences?
 
 **Storm**, **Flood** and **Tornado** (appear in the order of severity of damages caused measured in US$) are most devastated in terms of economic consequences.
 
-Conclusion: Not in any particular order, **Tornado**, **Storm** and **Flood** are most hazardous weather with respect to casualty count and economic loss in the history of USA.  
+  Conclusion: Not in any particular order, **Tornado**, **Storm** and **Flood** are most hazardous weather with respect to casualty count and economic loss in the history of USA.  
 &nbsp;
 
 <!-- trends of weather events across the usa from 1950 ~ 2011 -->
@@ -570,7 +567,8 @@ ev.w.gcs <- stormsub %>%
                FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
         filter(as.numeric(rownames(stormsub)) %in% w &
                 ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) & 
-                 (LATITUDE > lat[1] & LATITUDE < lat[2]))) %>%
+                 (LATITUDE > lat[1] & LATITUDE < lat[2])) & 
+               (FATALITIES+INJURIES > 0 | PROPDMGS+CROPDMGS > 0)) %>%
         arrange(LONGITUDE, LATITUDE) %>%
         group_by(EVCLASS, LONGITUDE, LATITUDE) %>%
         summarize(EVCNT = n(),
@@ -598,7 +596,8 @@ ev.w.gcs <- stormsub %>%
                FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
         filter(as.numeric(rownames(stormsub)) %in% w &
                 ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) & 
-                 (LATITUDE > lat[1] & LATITUDE < lat[2]))) %>%
+                 (LATITUDE > lat[1] & LATITUDE < lat[2])) &
+                 (FATALITIES+INJURIES > 0 | PROPDMGS+CROPDMGS > 0)) %>%
         arrange(LONGITUDE, LATITUDE) %>%
         group_by(EVCLASS, LONGITUDE, LATITUDE) %>%
         summarize(EVCNT = n(),
@@ -622,7 +621,8 @@ ev.w.gcs <- stormsub %>%
                FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
         filter(as.numeric(rownames(stormsub)) %in% w &
                 ((LONGITUDE > lon[1] & LONGITUDE < lon[2]) & 
-                 (LATITUDE > lat[1] & LATITUDE < lat[2]))) %>%
+                 (LATITUDE > lat[1] & LATITUDE < lat[2])) &
+                 (FATALITIES+INJURIES > 0 | PROPDMGS+CROPDMGS > 0)) %>%
         arrange(LONGITUDE, LATITUDE) %>%
         group_by(EVCLASS, LONGITUDE, LATITUDE) %>%
         summarize(EVCNT = n(),
@@ -655,7 +655,7 @@ title(main = "Economic Loss", ylab = "(log scale)")
 
   Figure 3 above illustrates the locale of the 3-most hazardous event type in the USA for period 1990 ~ 2010. Interesting phenomenon observed here in the USA for the period where the 3-most harmful events mostly took place in the eastern half of the continent base on the geographic coordinate for each event as it occurred.
 
-  For the same period, scatter plot for Property/Crop Loss and scatter plot for Number of Casualty at the bottom of figure 3 yield an interesting situation where Economic Loss is rising while Number of Casualty is declining, as oppose to the general consensus of rising trend.  
+  For the same period, scatter plots for Economic Loss on the left and Number of Casualty on the right at the bottom of figure 3 yield an interesting situation where Economic Loss is rising while Number of Casualty is declining, as oppose to the general consensus of rising trend in general evident in figure 2 above.  
 &nbsp;
 
 ```{r house.keeping, include=FALSE}
