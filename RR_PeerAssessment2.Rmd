@@ -16,7 +16,7 @@ output:
 &nbsp;
 
 #### Initialize R workspace
-```{r setup, tidy=TRUE}
+```{r setup}
 knitr::opts_chunk$set(echo = TRUE)
 Sys.setenv(TZ = "UTC")      # set global TZ to UTC for POSIXt class
 
@@ -131,7 +131,7 @@ par.def <- par(no.readonly = TRUE)
 3) uncompressed the downloaded raw file and extract a comma-delimited text file.
 4) read the comma-delimited text file into R workspace as data table for efficiency.  
 
-```{r data.load, tidy=TRUE}
+```{r data.load}
 # loading data downloaded from course website into R workspace 
 #   user  system elapsed 
 # 53.457   1.190  57.097 
@@ -172,7 +172,7 @@ rm(fileurl,filetmp,filesrc,filels,filein)
 
 #### Exploratory Data Analysis
 
-```{r eda.0, tidy=TRUE}
+```{r eda.0}
 for (i in 1:length(filenam)) {
         print(paste(i, ":",filenam[i], "(",floor(object.size(get(filenam[i]))/10e+05),"MB)"))
 }
@@ -182,7 +182,7 @@ for (i in 1:length(filenam)) {
 
 Structure of **`r filenam[1]`** `r class(get(filenam[1]))[1]`.
 
-```{r eda.1, tidy=TRUE}
+```{r eda.1}
 str(get(filenam[1]))
 ```
 
@@ -193,7 +193,7 @@ str(get(filenam[1]))
 ## Data Processing
 
   For the purpose of this analysis work, which is to answer the pertinent questions about the weather events of *WHAT and WHERE*; we will proceed to spawn a new data.table object called **stormsub** from existing raw data set `r filenam[1]` with subset of 11 variables, plus a few more working-variables derived from existing raw data set. The following is the subset of variables grabbed from the existing raw data set **`r filenam[1]`**:  
-```{r data.proc, tidy=TRUE}
+```{r data.proc}
 v <- c(5,7,8,23,24,25,26,27,28,32,33)
 va <- array(dim = c(length(v),2))
 for (i in 1:length(v)) {
@@ -209,7 +209,7 @@ column 2: Data Type
 
 **EV_TIMESTAMP**  *working-variable*  
   Generate a time-stamp in POSIXct format, computed base on existing raw data BGN_DATE & BGN_TIME for each event as it was recorded in the raw data set. 
-```{r data.proc.1, tidy=TRUE}
+```{r data.proc.1}
 d1 <- sub(" .*", "", StormData$BGN_DATE)
 d2 <- gsub("[oO]", "0", StormData$BGN_TIME) # rectify typo error of 'O' for '0'
 d2 <- sub("12:00:00 AM", "00:00:00", d2) # rectify non-POSIXt compliant time fmt
@@ -224,7 +224,7 @@ rm(d1, d2)
 
 **LONGITUDE** & **LATITUDE**  
   The geographic coordinates (x,y) used in mapping weather events onto the map of USA to visually tell user where were the events took place. **LATITUDE** and **LONGITUDE** data in their current form are not immediately use-able by any mapping system, must go through a conversion process to transform them into geographic coordinate system configuration to be readily recognizeable by base R mapping tools or any other mapping systems.
-```{r data.proc.2, tidy=TRUE}
+```{r data.proc.2}
 # Reformat LATITUDE vector to geographic coordinate system format nnn.ddd
 numsign <- sign(StormData$LATITUDE)
 lat <- sapply(StormData$LATITUDE, udf.stripsign)
@@ -243,7 +243,7 @@ rm(lon, lat, numsign)
 
 **EVTYPE**  
   Data values captured in EVTYPE in its current raw format is quite a bit "dirty" and mostly present itself in human natural language construct than conforming to standard category coding format useful for information processing using computers. To enable simpler data processing logic coding to avoid unnecessary error during analytic processing run, we trim un-needed white-spaces from within **EVTYPE** vector then convert to upper case for conformity with the requirement of downstream analytic processing. Please refer to **EVCLASS** for further explanation.
-```{r data.proc.3, tidy=TRUE}
+```{r data.proc.3}
 # Trim whitespace & convert to upper case.
 StormData$EVTYPE <- toupper(str_squish(StormData$EVTYPE))
 ```
@@ -254,7 +254,7 @@ StormData$EVTYPE <- toupper(str_squish(StormData$EVTYPE))
 **PROPDMGEXP**  
 **CROPDMGEXP**  
   Trim un-needed embedded white-space, if any, then convert these data values to upper case words, again for conformity.
-```{r data.proc.4, tidy=TRUE}
+```{r data.proc.4}
 StormData$STATE <- toupper(str_squish(StormData$STATE))
 StormData$COUNTY <- toupper(str_squish(StormData$COUNTY))
 StormData$PROPDMGEXP <- toupper(str_squish(StormData$PROPDMGEXP))
@@ -264,7 +264,7 @@ StormData$CROPDMGEXP <- toupper(str_squish(StormData$CROPDMGEXP))
 
 **EVCLASS**  *working-variable*  
   Re-classification of event type, to standard category coding format to overcome the non-standardize text format present in **EVTYPE**, to ensure they are in conformity with the requirement of downstream analytic processing.
-```{r data.proc.5, tidy=TRUE}
+```{r data.proc.5}
 # Add NEW column EVCLASS to StormData
 StormData <- StormData %>% mutate(EVCLASS = character(1))
 
@@ -366,7 +366,7 @@ rm(evclass.tmp, evclass.evtyp, evclass.rowid, evclass)
 
 **stormsub**  *working-data set*  
   Comprising subset of the weather event data spawned from the raw data set **StormData**, instituting the basis of all subsequent analytic processing and reporting. 
-```{r data.proc.6, tidy=TRUE}
+```{r data.proc.6}
 # subset of StormData across the USA (exclude off-shore territories).
 stormsub <- StormData %>% 
         select(EV_TIMESTAMP, EVCLASS, EVTYPE, LONGITUDE, LATITUDE, STATE, COUNTY,
@@ -387,7 +387,7 @@ stormsub <- StormData %>%
 ## Results
 
 <!-- weather events frequency aggregate overview barchart -->
-```{r data.analytic, fig.cap="Figure 1: Overview of Weather Events across USA", message=FALSE, tidy=TRUE, fig.width=13, fig.height=12} 
+```{r data.analytic, fig.cap="Figure 1: Overview of Weather Events across USA", message=FALSE, fig.width=13, fig.height=12} 
 par(par.def)
 
 pal <- mypal[seq(length(mypal), by = -2, length.out = N)]
@@ -493,7 +493,7 @@ Which types of events have the greatest economic consequences?
 &nbsp;
 
 <!-- trends of weather events across the usa from 1950 ~ 2011 -->
-```{r data.analytic2, fig.cap="Figure 2: Trends of Weather Events", message=FALSE, tidy=TRUE, fig.width=12, fig.height=8}
+```{r data.analytic2, fig.cap="Figure 2: Trends of Weather Events", message=FALSE, fig.width=12, fig.height=8}
 par(par.def)
 
 evcnt4 <- stormsub %>% 
@@ -535,7 +535,7 @@ print(xyp)
 &nbsp;
 
 <!-- maps of the usa with weather events mapping -->
-```{r data.analytic3, fig.cap=paste("Figure 3: Locale of Most Hazardous Events (1990 ~ 2010)"), message=FALSE, tidy=TRUE, fig.width=12, fig.height=8}
+```{r data.analytic3, fig.cap=paste("Figure 3: Locale of Most Hazardous Events (1990 ~ 2010)"), message=FALSE, fig.width=12, fig.height=8}
 # Mapping locations of Tornado, Storm & Flood events for year 1990 ~ 2010
 par(par.def)
 
