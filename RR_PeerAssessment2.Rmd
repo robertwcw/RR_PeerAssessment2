@@ -429,7 +429,7 @@ for (i in 1:length(m)) {
 evcnt2 <- stormsub %>%
         select(EV_TIMESTAMP, STATE, EVCLASS, EVTYPE, 
                FATALITIES, INJURIES, PROPDMGS, CROPDMGS) %>%
-        filter(FATALITIES > 0 | INJURIES > 0 | PROPDMGS > 0 | CROPDMGS > 0) %>%
+        filter(FATALITIES+INJURIES > 0 | PROPDMGS+CROPDMGS > 0) %>%
         group_by(EVCLASS) %>%
         summarise(EVCNT = n())
 
@@ -453,7 +453,7 @@ for (i in 1:length(m)) {
 # hazardous weather events in terms of casualty count and economic loss
 # casualty & property/crop loss breakdown by event type of individual-state
 evcnt3 <- stormsub %>%
-        select(STATE, EVCLASS, EVTYPE, FATALITIES,INJURIES, PROPDMGS,CROPDMGS) %>%
+        select(STATE,EVCLASS,EVTYPE,FATALITIES,INJURIES,PROPDMGS,CROPDMGS) %>%
         group_by(STATE, EVCLASS) %>%
         summarise(ECONLOSS = (sum(PROPDMGS) + sum(CROPDMGS)) / 1e+09,
                   CASUALTI = (sum(FATALITIES) + sum(INJURIES)) / 1e+03)
