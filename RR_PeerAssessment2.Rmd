@@ -580,7 +580,7 @@ points(x = ev.w.gcs$LONGITUDE, y = ev.w.gcs$LATITUDE, pch = 20, cex = 0.7,
        col = alpha(pal[ev.klass], 0.2))
 legend(x = -75, y = 25, ev.class[ev.klass,2], fill = pal[ev.klass], 
        border = pal[ev.klass], bty = "n", x.intersp = 1/2, y.intersp = 1, 
-       xjust = 0, yjust = 0, text.font = 2, cex = 0.8)
+       xjust = 0, yjust = 0, text.font = 2, cex = 1.0)
 
 
 # Map of Alaska
